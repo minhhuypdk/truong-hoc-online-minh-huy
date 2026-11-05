@@ -51,11 +51,11 @@ function stopMusic(){if(musicTimer){clearInterval(musicTimer);musicTimer=null}if
 musicButton.onclick=()=>{musicEnabled=!musicEnabled;try{localStorage.setItem('minh-huy-school-music',musicEnabled?'on':'off')}catch{}musicLabel();if(musicEnabled)startMusic();else stopMusic()};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMusic();else if(musicEnabled&&audioCtx)startMusic()});
 musicLabel();
-const scene=new THREE.Scene();scene.background=new THREE.Color('#a9dcff');scene.fog=new THREE.Fog('#a9dcff',72,145);
-const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,160);const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.setSize(innerWidth,innerHeight);document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#a9dcff');scene.fog=new THREE.Fog('#a9dcff',115,260);
+const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,350);const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.setSize(innerWidth,innerHeight);document.body.prepend(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffffff,0x7b9bb6,2.15));const sun=new THREE.DirectionalLight(0xfff4d9,2.2);sun.position.set(20,35,15);scene.add(sun);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
 const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});function box(w,h,d,x,y,z,c){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));m.position.set(x,y,z);scene.add(m);return m}
-box(90,.2,90,0,-.15,0,'#83c987');box(7,.05,78,0,.02,0,'#e6d5b5');box(72,.05,7,0,.03,4,'#e6d5b5');
+box(166,.2,94,0,-.15,0,'#83c987');box(7,.05,78,0,.02,0,'#e6d5b5');box(148,.05,7,0,.03,4,'#e6d5b5');
 const walls=[];function building(x,z,w,d,h,c){box(w,h,d,x,h/2,z,c);box(w+.7,.6,d+.7,x,h+.2,z,'#f7f8fc');for(let i=-1;i<=1;i++)box(1.8,2,.1,x+i*w/4,3,z+d/2+.08,'#6db2e5');walls.push({x,z,w,d})}
 // U-shaped campus: three buildings at the rear and two along the side boundaries.
 building(0,-32,30,12,15,'#f2ad6d');building(-32,-17,13,15,8,'#bea4ec');building(32,-17,13,15,8,'#90bfea');building(-32,10,13,15,8,'#f6ce72');building(32,10,13,15,8,'#f6a8a8');
