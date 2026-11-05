@@ -133,7 +133,7 @@ const saoTasks=[
 {q:'Sao Đỏ nhờ em nhắc bạn: Khi xếp hàng cần?',a:['Chen lên trước','Xếp hàng ngay ngắn','Đẩy bạn khác'],correct:1},
 {q:'Sao Đỏ hỏi: Muốn mượn đồ của bạn cần?',a:['Tự lấy','Giấu đi','Xin phép trước'],correct:2}
 ];
-function meetSaoDo(){if(floor!==-1||saoEncounterOpen||document.getElementById('modal').style.display==='flex'||!welcome.hidden===false)return;
+function meetSaoDo(){if(floor!==-1||saoEncounterOpen||document.getElementById('modal').style.display==='flex'||!welcome.hidden)return;
 const now=performance.now();if(now-saoLastEncounter<30000)return;saoLastEncounter=now;saoEncounterOpen=true;autoTarget=null;
 const task=saoTasks[Math.floor(Math.random()*saoTasks.length)];
 function recordSaoNote(){saoNotes++;saoEncounterOpen=false;dialog('📒 Sổ nhắc nhở','Sao Đỏ ghi một lời nhắc: '+appearance.name+' cần chú ý đồng phục và nề nếp hơn nhé! Tổng lời nhắc trong lượt chơi: '+saoNotes+'.',[['Em sẽ cố gắng!',()=>{}]])}
