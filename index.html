@@ -339,7 +339,37 @@ const sayings=[['Có công mài sắt, có ngày nên kim.','Kiên trì sẽ th�
 function updateOwnerBoard(){while(ownerBoard.children.length){const m=ownerBoard.children[0];ownerBoard.remove(m);m.geometry.dispose();m.material.map?.dispose();m.material.dispose()}const c=document.createElement('canvas');c.width=1536;c.height=512;const ctx=c.getContext('2d');ctx.fillStyle='#194d3c';ctx.fillRect(0,0,1536,512);ctx.strokeStyle='#f4e8bc';ctx.lineWidth=12;ctx.strokeRect(12,12,1512,488);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff5ca';ctx.font='bold 60px system-ui';ctx.fillText('MỖI NGÀY MỘT ĐIỀU HAY',768,85,1350);ctx.font='bold 70px system-ui';ctx.fillStyle='#fff';const words=currentSaying[0].split(' '),lines=[];let line='';for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>1280&&line){lines.push(line);line=word}else line=test}if(line)lines.push(line);lines.forEach((v,i)=>ctx.fillText(v,768,225-(lines.length-1)*48+i*96,1370));ctx.font='italic 44px system-ui';ctx.fillStyle='#b9e5cb';ctx.fillText(currentSaying[1],768,445,1350);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;ownerBoard.add(new THREE.Mesh(new THREE.PlaneGeometry(19.5,6.6),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})))}
 function refreshSeatTicker(){const t=document.getElementById('seatTicker');if(!t)return;t.hidden=floor!==0;document.getElementById('seatTickerText').textContent=claimedDesk===null?'🪑 Em chưa chọn bàn':'🪑 '+appearance.name+' · Bàn số '+(claimedDesk+1)}
 function updateDeskOwnership(){if(claimedDesk!==null&&seatRoster[claimedDesk]!==appearance.name){seatRoster[claimedDesk]=appearance.name;localStorage.setItem(seatingStorageKey,JSON.stringify(seatRoster))}for(let i=0;i<deskLabels.length;i++){const old=deskLabels[i];if(old){indoor.remove(old);old.material.map.dispose();old.material.dispose();old.geometry.dispose()}deskLabels[i]=null}if(claimedDesk!==null){const p=deskPositions[claimedDesk],label=deskNameSprite(appearance.name,claimedDesk+1);label.position.set(p.x,1.42,p.z);indoor.add(label);deskLabels[claimedDesk]=label;label.visible=floor===0}updateOwnerBoard();refreshSeatTicker()}
-for(const z of [-7,-3,1,5,9]){const tier=(z+7)/4;roomBox(49,.22,3.8,0,.08+tier*.26,z+1.1,'#c5a989');for(const x of [-19,-11,-3,5,13,21]){const i=deskPositions.length;deskPositions.push({x,z});const y=1.12+tier*.26;roomBox(6.5,.18,1.65,x,y,z,'#f5c57b');for(const dx of [-2.8,2.8])roomBox(.16,y-.2,.16,x+dx,(y-.2)/2,z,'#967251');roomBox(5.8,.55,.45,x,.5+tier*.26,z+1.4,'#78a8d5')}}roomBox(20,.45,3.6,0,.22,-10,'#8c6a8f');roomBox(18,.15,2.8,0,.52,-10,'#e7cda1');
+// Five gently stepped rows, thirty fixed desk positions; retain existing seat IDs and collision logic.
+const hallWood=new THREE.MeshStandardMaterial({color:'#bd8a55',roughness:.62,metalness:.02});
+const hallSeat=new THREE.MeshStandardMaterial({color:'#355c7a',roughness:.78});
+for(const z of [-7,-3,1,5,9]){const tier=(z+7)/4,step=tier*.26;
+roomBox(49,.22,3.8,0,.08+step,z+1.1,'#c5a989');
+roomBox(49,.22,.15,0,.12+step,z+2.94,'#e6d5bd');
+for(const x of [-19,-11,-3,5,13,21]){
+const i=deskPositions.length;deskPositions.push({x,z});const y=1.12+step;
+roomBox(6.5,.18,1.65,x,y,z,'#f5c57b');
+for(const dx of [-2.8,2.8])roomBox(.16,y-.2,.16,x+dx,(y-.2)/2,z,'#967251');
+roomBox(5.8,.55,.45,x,.5+step,z+1.4,'#78a8d5');
+// Rounded wood lip and polished desk surface, open workbook and a small pencil holder.
+const top=new THREE.Mesh(new THREE.BoxGeometry(6.3,.065,1.5),hallWood);top.position.set(x,y+.13,z);indoor.add(top);floorMeshes[0].push(top);
+roomBox(6.35,.09,.09,x,y+.16,z+.77,'#e8c796');
+for(const dx of [-.45,.45]){const page=roomBox(.84,.025,.65,x+dx,y+.19,z-.13,'#fff9e9');page.rotation.y=dx>0?-.035:.035}
+roomBox(.08,.03,.53,x,y+.215,z-.13,'#b3c6d6');
+roomBox(.09,.09,.66,x+1.25,y+.21,z-.2,'#f2c96b');
+roomBox(.45,.52,.5,x,.66+step,z+1.52,'#4b7193');
+roomBox(5.55,.08,.18,x,.43+step,z+1.62,'#b6d0df');
+}}
+roomBox(20,.45,3.6,0,.22,-10,'#8c6a8f');roomBox(18,.15,2.8,0,.52,-10,'#e7cda1');
+// Raised teaching platform: podium, front steps, LED presentation display and ceiling acoustic panels.
+for(const x of [-8,8])roomBox(2,.12,1.1,x,.12,-7.95,'#ead3b3');
+roomBox(1.65,1.15,1.1,7.3,1.2,-9.6,'#9c724f');
+roomBox(1.9,.13,1.25,7.3,1.82,-9.6,'#d6b38c');
+roomBox(13.8,3.1,.16,0,3.1,-11.45,'#233b54');
+roomBox(14.3,.13,.25,0,4.75,-11.42,'#d2b47d');
+roomBox(14.3,.13,.25,0,1.48,-11.42,'#d2b47d');
+for(const x of [-23,-11,0,11,23]){roomBox(3.4,.11,1.05,x,4.78,-2,'#d9e0df');roomBox(3.4,.11,1.05,x,4.78,6,'#d9e0df')}
+for(const x of [-24,24]){for(const z of [-7,0,7]){roomBox(.1,2.1,2.2,x,2.7,z,'#d1e5e8');roomBox(.12,.12,2.25,x,3.75,z,'#f7f0df')}}
+
 const classroomTeacher=new THREE.Group();classroomTeacher.position.set(-8,0,-9.5);indoor.add(classroomTeacher);makeTeacher(classroomTeacher);floorMeshes[0].push(classroomTeacher);const indoorPoints=[{id:'exit',x:-18,z:9,label:'🚪 Cửa ra sân trường'},{id:'teacher',x:-8,z:-8.4,label:'👩‍🏫 Giáo viên lớp học'},{id:'library',x:12,z:-10,label:'📚 Góc thư viện'},...deskPositions.map((p,i)=>({id:'desk'+i,x:p.x,z:p.z+2.4,label:'🪑 Bàn học '+(i+1)}))];
 for(const x of [12,14,16])for(let h=0;h<3;h++)roomBox(1.8,.7,.8,x,.6+h*.8,-10,['#df8d8a','#82b5d8','#f0d279'][h]);
 constructingFloor=-1;syncFloorVisibility();
