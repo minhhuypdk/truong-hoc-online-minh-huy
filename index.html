@@ -57,12 +57,30 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)stopMusic()
 musicLabel();
 const scene=new THREE.Scene();scene.background=new THREE.Color('#a9dcff');scene.fog=new THREE.Fog('#a9dcff',115,260);
 const camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,350);const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.25));renderer.setSize(innerWidth,innerHeight);document.body.prepend(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xffffff,0x7b9bb6,2.15));const sun=new THREE.DirectionalLight(0xfff4d9,2.2);sun.position.set(20,35,15);scene.add(sun);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;
+scene.add(new THREE.HemisphereLight(0xffffff,0x7b9bb6,2.15));const sun=new THREE.DirectionalLight(0xfff4d9,2.2);sun.position.set(20,35,15);scene.add(sun);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.2;renderer.shadowMap.enabled=false; // Safari-friendly: use baked contact shadows instead of expensive real-time shadow maps.
 const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.8});function box(w,h,d,x,y,z,c){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));m.position.set(x,y,z);scene.add(m);return m}
-box(166,.2,94,0,-.15,0,'#83c987');box(7,.05,78,0,.02,0,'#e6d5b5');box(148,.05,7,0,.03,4,'#e6d5b5');
+box(166,.2,94,0,-.15,0,'#76b67a');box(7,.05,78,0,.02,0,'#e6d5b5');box(148,.05,7,0,.03,4,'#e6d5b5');
+// Instanced stone plaza: one draw call per tile shade, avoiding hundreds of Safari draw calls.
+const plazaGeo=new THREE.BoxGeometry(3.95,.055,3.95),plazaColors=['#e7d9c6','#d6c5b1','#efe2cf'];
+for(let shade=0;shade<3;shade++){const coords=[];for(let x=-38;x<=38;x+=4)for(let z=-11;z<=35;z+=4){if((Math.round((x+38)/4)*7+Math.round((z+11)/4)*11)%3===shade)coords.push([x,z])}const mesh=new THREE.InstancedMesh(plazaGeo,new THREE.MeshStandardMaterial({color:plazaColors[shade],roughness:.94}),coords.length);const transform=new THREE.Object3D();coords.forEach(([x,z],i)=>{transform.position.set(x,.055,z);transform.updateMatrix();mesh.setMatrixAt(i,transform.matrix)});mesh.instanceMatrix.needsUpdate=true;scene.add(mesh)}
+// Soft contact shadow discs: inexpensive visual depth without mobile shadow-map overhead.
+const shadowGeo=new THREE.CircleGeometry(1,20),shadowMat=new THREE.MeshBasicMaterial({color:'#425e58',transparent:true,opacity:.15,depthWrite:false});
+function contactShadow(x,z,rx,rz){const m=new THREE.Mesh(shadowGeo,shadowMat);m.rotation.x=-Math.PI/2;m.scale.set(rx,rz,1);m.position.set(x,.09,z);scene.add(m);return m}
+
 const walls=[];function building(x,z,w,d,h,c){box(w,h,d,x,h/2,z,c);box(w+.7,.6,d+.7,x,h+.2,z,'#f7f8fc');for(let i=-1;i<=1;i++)box(1.8,2,.1,x+i*w/4,3,z+d/2+.08,'#6db2e5');walls.push({x,z,w,d})}
 // U-shaped campus: three buildings at the rear and two along the side boundaries.
-building(0,-32,30,12,15,'#f2ad6d');building(-32,-17,13,15,8,'#bea4ec');building(32,-17,13,15,8,'#90bfea');building(-32,10,13,15,8,'#f6ce72');building(32,10,13,15,8,'#f6a8a8');
+building(0,-32,30,12,15,'#e7d9c6');building(-32,-17,13,15,8,'#d8c9e9');building(32,-17,13,15,8,'#c3dbea');building(-32,10,13,15,8,'#efdbac');building(32,10,13,15,8,'#f0c9c1');
+// Layered academy façade: glazed central entrance, structural columns, roof cornices and crest.
+const glassMat=new THREE.MeshPhysicalMaterial({color:'#245477',metalness:.28,roughness:.18,transparent:true,opacity:.88,clearcoat:.7,clearcoatRoughness:.2});
+const frontGlass=new THREE.Mesh(new THREE.BoxGeometry(12.5,10.6,.16),glassMat);frontGlass.position.set(0,7.9,-25.82);scene.add(frontGlass);
+for(const x of [-14,-11.5,11.5,14]){box(.8,14.7,1,x,7.35,-25.4,'#f7efe3');box(1.2,.55,1.35,x,14.6,-25.4,'#e9d4a9');box(1.2,.5,1.35,x,.55,-25.4,'#e9d4a9')}
+for(const y of [3.6,7.4,11.3])box(13,.18,.25,0,y,-25.65,'#d9b77d');
+for(const x of [-4.2,0,4.2])box(.16,10.5,.22,x,7.9,-25.68,'#d2d9dc');
+box(18,1.1,1.5,0,15.7,-25.2,'#faf1e4');box(20,.23,1.75,0,16.4,-25.2,'#d2b88f');
+for(const x of [-10,10])for(const y of [5,9.2]){const win=new THREE.Mesh(new THREE.PlaneGeometry(2.4,2.7),glassMat);win.position.set(x,y,-25.78);scene.add(win);box(.12,2.9,.16,x,y,-25.85,'#f4e7d3');box(2.6,.12,.16,x,y,-25.85,'#f4e7d3')}
+const academySign=document.createElement('canvas');academySign.width=1024;academySign.height=256;const ac=academySign.getContext('2d');ac.fillStyle='#173c5e';ac.fillRect(0,0,1024,256);ac.textAlign='center';ac.textBaseline='middle';ac.fillStyle='#f7d47f';ac.font='bold 69px system-ui';ac.fillText('TRƯỜNG HỌC BÉ BUM',512,104);ac.font='bold 45px system-ui';ac.fillText('ACADEMY',512,190);const academyTexture=new THREE.CanvasTexture(academySign);academyTexture.colorSpace=THREE.SRGBColorSpace;const signMesh=new THREE.Mesh(new THREE.PlaneGeometry(11.8,3),new THREE.MeshBasicMaterial({map:academyTexture,side:THREE.DoubleSide}));signMesh.position.set(0,12.9,-25.95);scene.add(signMesh);
+for(const x of [-32,0,32])contactShadow(x,-25,11,2.1);
+
 /* Enclosed school campus and accessible central entrance */
 for(const z of [-40,40])for(let x=-80;x<=80;x+=2){if(z===40&&Math.abs(x)<5)continue;box(.14,1.85,.16,x,.93,z,'#345a77');box(.22,2.1,.23,x,1.05,z,'#f5e6c3')}
 for(const x of [-80,80])for(let z=-40;z<=40;z+=2){box(.16,1.85,.14,x,.93,z,'#345a77');box(.23,2.1,.22,x,1.05,z,'#f5e6c3')}
