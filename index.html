@@ -185,7 +185,7 @@ function save(){localStorage.setItem('minh-huy-school-alpha',JSON.stringify(stat
 function dialog(title,msg,actions=[]){document.getElementById('title').textContent=title;document.getElementById('message').textContent=msg;const choices=document.getElementById('choices');choices.replaceChildren();for(const [label,fn] of actions){const b=document.createElement('button');b.textContent=label;b.onclick=()=>{document.getElementById('modal').style.display='none';fn()};choices.append(b)}document.getElementById('modal').style.display='flex'}
 
 let floor=-1;const indoor=new THREE.Group();indoor.position.x=120;scene.add(indoor);const floorMeshes=[[]];let constructingFloor=-1;
-function syncFloorVisibility(){for(const m of floorMeshes[0])m.visible=floor===0; sportsRoom.visible=floor===2}
+function syncFloorVisibility(){for(const m of floorMeshes[0])m.visible=floor===0;if(typeof sportsRoom!=='undefined')sportsRoom.visible=floor===2}
 function roomBox(w,h,d,x,y,z,c){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));m.position.set(x,y,z);indoor.add(m);if(constructingFloor===0)floorMeshes[0].push(m);return m}
 constructingFloor=0;roomBox(48,.4,30,0,-.2,0,'#e9d5b2');roomBox(48,4,.3,0,2,-12,'#f1f4ff');roomBox(12,2,.25,0,2,-11.8,'#286457');
 for(const x of [-18,18])for(const z of [-8,-2,4])roomBox(.15,2.5,2.4,x,2.1,z,'#9ed9f5');
