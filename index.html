@@ -335,6 +335,13 @@ const saoPoint={id:'saoDo',x:12,z:27,label:'⭐ Sao Đỏ kiểm tra đồng ph�
 const saoRoute=[[12,27],[27,27],[30,6],[15,4],[-8,7],[-28,8],[-28,27],[-8,30]];
 let saoRouteIndex=1,saoLastEncounter=-30000,saoEncounterOpen=false,saoNotes=0;
 let saoChase=null;let saoPanicUntil=0;
+const saoStatsKey='be-bum-sao-do-stats-v1';
+function loadSaoStats(){try{const d=JSON.parse(localStorage.getItem(saoStatsKey)||'{}');return {encounters:Math.max(0,Math.floor(Number(d.encounters)||0)),escaped:Math.max(0,Math.floor(Number(d.escaped)||0)),caught:Math.max(0,Math.floor(Number(d.caught)||0))}}catch{return {encounters:0,escaped:0,caught:0}}}
+const saoStats=loadSaoStats();
+function recordSaoStat(key){if(!['encounters','escaped','caught'].includes(key))return;saoStats[key]++;try{localStorage.setItem(saoStatsKey,JSON.stringify(saoStats))}catch{}}
+function saoStatsSummary(){return '⭐ Gặp Sao Đỏ: '+saoStats.encounters+' lần · 🏃 Thoát thành công: '+saoStats.escaped+' lần · 📒 Bị bắt: '+saoStats.caught+' lần'}
+function openSaoAchievementCard(){dialog('⭐ THẺ THÀNH TÍCH SAO ĐỎ',saoStatsSummary()+'\nTổng lượt bỏ chạy: '+(saoStats.escaped+saoStats.caught)+'. Thống kê lưu trên thiết bị này, chưa đồng bộ trực tuyến.',[['↩ Về thành tích',openCharacterAchievements]])}
+
 const saoTasks=[
 {q:'Em giúp Sao Đỏ nhé: Khi gặp thầy cô, em nên làm gì?',a:['Chào hỏi lễ phép','Chạy đi thật nhanh','Làm ngơ'],correct:0},
 {q:'Sao Đỏ nhờ em kiểm tra: Em thấy rác trong sân trường, em sẽ?',a:['Để nguyên','Bỏ vào thùng rác','Đá rác sang bên'],correct:1},
@@ -351,7 +358,7 @@ function saoFlash(message){
  setTimeout(()=>{el.style.opacity='0';el.style.transform='translate(-50%,-50%) scale(1.15)'},1250);
 }
 function saoPenalty(){
- saoNotes++;const loss=Math.min(20,availableXP());if(loss>0)spendXP(loss);
+ recordSaoStat('caught');saoNotes++;const loss=Math.min(20,availableXP());if(loss>0)spendXP(loss);
  saoEncounterOpen=false;saoChase=null;saoPanicUntil=performance.now()+1600;saoLastEncounter=performance.now();
  dialog('📒 Sao Đỏ đã bắt được!','Em được nhắc nhở vì bỏ chạy khi kiểm tra. '+(loss?'Trừ '+loss+' XP.':'Hiện chưa có XP nên không trừ điểm.')+' Hãy bình tĩnh và hợp tác lần sau nhé.',[['Em hiểu rồi',()=>{}]]);
 }
@@ -364,7 +371,7 @@ function startSaoEscape(){
 function meetSaoDo(){
  if(floor!==-1||saoEncounterOpen||saoChase||document.getElementById('modal').style.display==='flex'||!welcome.hidden)return;
  const now=performance.now();if(now-saoLastEncounter<30000)return;
- saoLastEncounter=now;saoEncounterOpen=true;autoTarget=null;saoPanicUntil=now+2400;saoFlash('😳 SAO ĐỎ!');
+ saoLastEncounter=now;recordSaoStat('encounters');saoEncounterOpen=true;autoTarget=null;saoPanicUntil=now+2400;saoFlash('😳 SAO ĐỎ!');
  const task=saoTasks[Math.floor(Math.random()*saoTasks.length)];
  function recordSaoNote(){saoNotes++;saoEncounterOpen=false;dialog('📒 Sổ nhắc nhở','Sao Đỏ nhắc '+appearance.name+' giữ đồng phục gọn gàng và đi lại đúng nội quy. Số lần được nhắc: '+saoNotes+'.',[['Em sẽ chú ý!',()=>{}]])}
  dialog('⭐ SAO ĐỎ · KIỂM TRA','Bạn ơi, dừng lại! Bạn tên là gì? Bạn có muốn trả lời câu hỏi về nội quy không?',[
@@ -388,7 +395,7 @@ function moveSaoDo(dt){
   if(chase.time>=chase.duration){
    saoDo.position.y=0;
    if(chase.caught)saoPenalty();
-   else{saoChase=null;saoLastEncounter=performance.now();saoFlash('🎉 CHẠY THOÁT!');document.getElementById('tip').textContent='Sao Đỏ không bắt được! Không bị trừ XP.'}
+   else{recordSaoStat('escaped');saoChase=null;saoLastEncounter=performance.now();saoFlash('🎉 CHẠY THOÁT!');document.getElementById('tip').textContent='Sao Đỏ không bắt được! Không bị trừ XP.'}
   }
  }else{
   saoDo.position.y=0;
@@ -618,6 +625,7 @@ function openInventoryCategory(category){
 function openCharacterAchievements(){
  const xp=earnedXP(),available=availableXP(),lv=1+Math.floor(xp/100);
  dialog('🏅 Thành tích của em','',[
+ ['⭐ Thẻ thành tích Sao Đỏ',openSaoAchievementCard],
  ['🎯 Xem nhiệm vụ',()=>dialog('🎯 Gợi ý nhận XP','Hoàn thành bài học, khám phá trường và thực hiện các nhiệm vụ chính để nhận XP.',[['↩ Thành tích',openCharacterAchievements]])],
  ['↩ Hồ sơ nhân vật',openCharacterHub]
  ]);
@@ -631,7 +639,10 @@ function openCharacterAchievements(){
  ['⭐','XP đã nhận',String(xp),'Tổng tích lũy'],
  ['✨','XP khả dụng',String(available),'Theo hệ thống hiện tại'],
  ['🪙','Xu Bum','Chưa mở','Gameplay 2.0'],
- ['💚','Hạnh kiểm','Chưa mở','Gameplay 2.0']
+ ['💚','Hạnh kiểm','Chưa mở','Gameplay 2.0'],
+ ['⭐','Gặp Sao Đỏ',String(saoStats.encounters),'Tổng lượt kiểm tra'],
+ ['🏃','Chạy thoát',String(saoStats.escaped),'Sao Đỏ không bắt được'],
+ ['📒','Bị Sao Đỏ bắt',String(saoStats.caught),'Bỏ chạy thất bại']
  ];
  for(const [icon,label,value,detail] of stats){
   const card=document.createElement('div');card.className='achievement-stat';
@@ -754,7 +765,7 @@ for(const x of [-24,24]){for(const z of [-7,0,7]){roomBox(.1,2.1,2.2,x,2.7,z,'#d
 const classroomTeacher=new THREE.Group();classroomTeacher.position.set(-8,0,-9.5);indoor.add(classroomTeacher);makeTeacher(classroomTeacher);floorMeshes[0].push(classroomTeacher);const indoorPoints=[{id:'exit',x:-18,z:9,label:'🚪 Cửa ra sân trường'},{id:'teacher',x:-8,z:-8.4,label:'👩‍🏫 Giáo viên lớp học'},{id:'library',x:12,z:-10,label:'📚 Góc thư viện'},...deskPositions.map((p,i)=>({id:'desk'+i,x:p.x,z:p.z+2.7,label:'🪑 Bàn học '+(i+1)}))];
 for(const x of [12,14,16])for(let h=0;h<3;h++)roomBox(1.8,.7,.8,x,.6+h*.8,-10,['#df8d8a','#82b5d8','#f0d279'][h]);
 constructingFloor=-1;syncFloorVisibility();
-function showStudentProfile(i){const name=seatRoster[i];if(!name)return;dialog('👤 Hồ sơ · '+name,'🪑 Bàn số '+(i+1)+' · Lớp học chuyên môn. Thông tin hiện được lưu trên thiết bị này; chưa xác thực tài khoản hay đồng bộ học sinh trực tuyến.',[['💌 Kết bạn (sắp ra mắt)',()=>dialog('🔒 Chưa mở kết bạn','Tính năng sẽ cần tài khoản xác thực, đồng ý kết bạn hai chiều và quyền kiểm soát của phụ huynh.')],['💬 Trò chuyện (sắp ra mắt)',()=>dialog('🔒 Chưa mở trò chuyện','Trò chuyện giữa học sinh cần cơ chế bảo vệ trẻ em, quyền riêng tư và kiểm duyệt phù hợp trước khi triển khai.')],['↩ Quay lại lớp',()=>{}]])}
+function showStudentProfile(i){const name=seatRoster[i];if(!name)return;const ownProfile=claimedDesk===i&&name===appearance.name;dialog('👤 Hồ sơ · '+name,'🪑 Bàn số '+(i+1)+' · Lớp học chuyên môn. '+(ownProfile?saoStatsSummary():'⭐ Thành tích Sao Đỏ: chưa có dữ liệu được xác thực từ người chơi này.')+' Thông tin hiện được lưu trên thiết bị này; chưa xác thực tài khoản hay đồng bộ học sinh trực tuyến.',[['💌 Kết bạn (sắp ra mắt)',()=>dialog('🔒 Chưa mở kết bạn','Tính năng sẽ cần tài khoản xác thực, đồng ý kết bạn hai chiều và quyền kiểm soát của phụ huynh.')],['💬 Trò chuyện (sắp ra mắt)',()=>dialog('🔒 Chưa mở trò chuyện','Trò chuyện giữa học sinh cần cơ chế bảo vệ trẻ em, quyền riêng tư và kiểm duyệt phù hợp trước khi triển khai.')],['↩ Quay lại lớp',()=>{}]])}
 function claimDesk(i){if(!Number.isInteger(i)||i<0||i>=deskPositions.length)return;if(claimedDesk===i){showStudentProfile(i);return}if(seatRoster[i]&&claimedDesk!==i){dialog('🪑 Bàn đã có người','Bàn '+(i+1)+' thuộc về '+seatRoster[i]+'.',[['👤 Xem hồ sơ',()=>showStudentProfile(i)],['Đóng',()=>{}]]);return}const q=deskQuestions[i%deskQuestions.length];dialog('🪑 Bàn số '+(i+1),q.q,q.a.map((answer,k)=>[answer,()=>{if(k===q.correct){if(seatRoster[i]&&claimedDesk!==i){dialog('🪑 Bàn đã có người','Hãy chọn bàn khác.');return}if(claimedDesk!==null)seatRoster[claimedDesk]=null;claimedDesk=i;seatRoster[i]=appearance.name;localStorage.setItem(seatingStorageKey,JSON.stringify(seatRoster));localStorage.setItem(activeDeskStorageKey(),String(i));updateDeskOwnership();if(!state.lessonDone){state.lessonDone=true;save()}dialog('🎉 Chọn chỗ thành công',appearance.name+' đã trả lời đúng! Tên em được ghi trên bàn '+(i+1)+'. Em có thể đổi bàn bằng cách trả lời đúng câu hỏi ở bàn khác.')}else dialog('❌ Chưa đúng','Hãy thử trả lời lại câu hỏi ở bàn '+(i+1)+'.',[['Thử lại',()=>claimDesk(i)]])}]))}
 const praiseQuestions=[{q:'What is 8 + 7?',a:['14','15','16'],correct:1},{q:'Which sentence is polite?',a:['Give me that!','May I have it, please?','Go away!'],correct:1},{q:'What is the opposite of happy?',a:['Sad','Fast','Big'],correct:0},{q:'Which planet do we live on?',a:['Mars','Earth','Venus'],correct:1},{q:'How many sides does a square have?',a:['3','4','5'],correct:1}];function teacherChallenge(){const q=praiseQuestions[Math.floor(Math.random()*praiseQuestions.length)];dialog('👩‍🏫 Cô giáo hỏi em',q.q,q.a.map((answer,i)=>[answer,()=>{if(i===q.correct){const p=['🌟 Em thật xuất sắc!','👏 Cô khen em chăm chỉ!','🏆 Em trả lời rất thông minh!'];dialog('🎉 Lời khen của cô',p[Math.floor(Math.random()*p.length)],[['Câu tiếp theo',teacherChallenge],['Cảm ơn cô',()=>{}]])}else dialog('👩‍🏫 Cô động viên','Chưa đúng rồi, em hãy thử lại nhé!',[['Thử lại',teacherChallenge]])}]))}
 /* Classroom 2.1: subject-specific guided activities; no premature Xu/conduct rewards. */
