@@ -2245,7 +2245,17 @@ function bumLoadPeer(){
 function bumRoomId(code){return 'be-bum-family-v2-shared-school'}
 function bumMakeCode(){const b=new Uint8Array(4);crypto.getRandomValues(b);return Array.from(b,v=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[v%32]).join('')+'AB'}
 function bumName(){return String(appearance.name||'Học sinh').slice(0,24)}
-function bumPacket(){return {t:'state',name:bumName(),look:{...appearance,accessories:[...(appearance.accessories||[])],accessoryColors:{...(appearance.accessoryColors||{})}},x:player.position.x,z:player.position.z,r:player.rotation.y,f:floor,a:studentAction?.id||'',at:studentAction?.started||0}}
+// One stable identity per browser installation, even after reconnecting or opening extra tabs.
+const bumDeviceKey='be-bum-multiplayer-device-v2';
+let bumDeviceId;
+try{bumDeviceId=localStorage.getItem(bumDeviceKey);if(!bumDeviceId){bumDeviceId=crypto.randomUUID();localStorage.setItem(bumDeviceKey,bumDeviceId)}}catch{bumDeviceId='temporary-'+Math.random().toString(36).slice(2)}
+function bumDeduplicate(deviceId,currentPeer){
+ if(!deviceId)return;
+ for(const [peerId,entry] of [...bumNet.remotes]){
+  if(peerId!==currentPeer&&entry.deviceId===deviceId)bumDropRemote(peerId);
+ }
+}
+function bumPacket(){return {t:'state',deviceId:bumDeviceId,name:bumName(),look:{...appearance,accessories:[...(appearance.accessories||[])],accessoryColors:{...(appearance.accessoryColors||{})}},x:player.position.x,z:player.position.z,r:player.rotation.y,f:floor,a:studentAction?.id||'',at:studentAction?.started||0}}
 function bumSend(conn,msg){if(conn?.open)try{conn.send(msg)}catch(e){console.warn('Multiplayer send',e)}}
 function bumBroadcast(msg,except){for(const [id,conn] of bumNet.connections)if(id!==except)bumSend(conn,msg)}
 function bumRemote(id){let entry=bumNet.remotes.get(id);if(entry)return entry;
@@ -2270,9 +2280,13 @@ function bumReceive(id,data){
  if(!data||typeof data!=='object')return;
  if(sharedMissionHandle(id,data))return;
  if(handleFriendWire(id,data))return;
+ if(data.t==='peer-left'&&typeof data.from==='string'){bumDropRemote(data.from);return}
  if(data.t==='state'){
   if(!Number.isFinite(data.x)||!Number.isFinite(data.z)||!Number.isFinite(data.r)||!Number.isInteger(data.f)||Math.abs(data.x)>400||Math.abs(data.z)>400)return;
+  if(typeof data.deviceId==='string'&&data.deviceId===bumDeviceId)return;
+  if(typeof data.deviceId==='string')bumDeduplicate(data.deviceId,id);
   const e=bumRemote(id);
+  if(typeof data.deviceId==='string')e.deviceId=data.deviceId;
   if(data.look&&typeof data.look==='object'){
    const look={...defaultAppearance,...data.look};
    look.accessories=Array.isArray(look.accessories)?look.accessories.filter(x=>typeof x==='string').slice(0,4):[];
@@ -2317,10 +2331,10 @@ function bumAttach(conn){
   bumStatus('🟢 Sân trường chung: '+(bumNet.connections.size+1)+' người đang kết nối');
   bumSend(conn,bumPacket());
   if(bumNet.host)bumSend(conn,{t:'mission-sync',mission:sharedMission,remaining:sharedMission?Math.max(0,sharedMission.expiresAt-Date.now()):0,claimed:sharedMissionClaimed});
-  if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,look:e.lookKey?JSON.parse(e.lookKey):undefined,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a});
+  if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,look:e.lookKey?JSON.parse(e.lookKey):undefined,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a,deviceId:e.deviceId});
  });
  conn.on('data',data=>bumReceive(conn.peer,data));
- conn.on('close',()=>{if(bumNet.connections.get(conn.peer)===conn)bumNet.connections.delete(conn.peer);if(!bumNet.leaving){bumStatus('⚠️ Người chơi tạm mất kết nối');if(!bumNet.host)bumScheduleReconnect()}});
+ conn.on('close',()=>{if(bumNet.connections.get(conn.peer)===conn){bumNet.connections.delete(conn.peer);if(bumNet.host){bumDropRemote(conn.peer);bumBroadcast({t:'peer-left',from:conn.peer})}}if(!bumNet.leaving){bumStatus('⚠️ Người chơi tạm mất kết nối');if(!bumNet.host)bumScheduleReconnect()}});
  conn.on('error',()=>bumStatus('⚠️ Kết nối với bạn bị lỗi'));
 }
 function bumLeave(){
@@ -2372,7 +2386,8 @@ function bumNetFrame(dt){
  const now=performance.now();
  if(now-bumNet.lastSent>100){bumNet.lastSent=now;const data=bumPacket();if(bumNet.host)bumBroadcast(data);else for(const conn of bumNet.connections.values())bumSend(conn,data)}
  for(const [id,e] of bumNet.remotes){
-  e.root.visible=e.f===floor&&now-e.updated<120000;
+  if(now-e.updated>15000){bumDropRemote(id);continue}
+  e.root.visible=e.f===floor;
   if(!e.root.visible)continue;
   const alpha=Math.min(1,dt*12);
   if(Math.hypot(e.targetX-e.root.position.x,e.targetZ-e.root.position.z)>20)e.root.position.set(e.targetX,0,e.targetZ);
