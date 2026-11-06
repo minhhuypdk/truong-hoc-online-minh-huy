@@ -1541,7 +1541,91 @@ function updateSchoolNature(t){
  if(t-natureLastChirp>5+Math.sin(t*.7)*2){natureLastChirp=t;natureChirp()}
 }
 
-const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);updateSchoolNature(clock.elapsedTime);bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
+
+/* Eight ambient NPC pupils. Local scenery only: not multiplayer peers, no overhead labels. */
+const ambientPupils=[],shuttleGroup=new THREE.Group();scene.add(shuttleGroup);
+const ambientLooks=[
+ {topColor:'#f8e6a6',bottomColor:'#4c6ca6',shoeColor:'#f6f6f6',hair:'#342b30',hairStyle:'side'},
+ {topColor:'#e5a4ad',bottomColor:'#34578b',shoeColor:'#ffffff',hair:'#392b24',hairStyle:'bob',gender:'girl'},
+ {topColor:'#b6d9f1',bottomColor:'#455b8c',shoeColor:'#f9c264',hair:'#29252b',hairStyle:'side'},
+ {topColor:'#f5f0df',bottomColor:'#496b78',shoeColor:'#ffffff',hair:'#4a332c',hairStyle:'short'},
+ {topColor:'#a6d6bd',bottomColor:'#404f83',shoeColor:'#e7e7e7',hair:'#28232b',hairStyle:'bob',gender:'girl'},
+ {topColor:'#e6b7e8',bottomColor:'#2f557b',shoeColor:'#e5efff',hair:'#372e2c',hairStyle:'side'},
+ {topColor:'#ffd2a1',bottomColor:'#465f9e',shoeColor:'#f5f5f5',hair:'#24242d',hairStyle:'short'},
+ {topColor:'#c4c6f4',bottomColor:'#425b88',shoeColor:'#ffffff',hair:'#44352c',hairStyle:'bob',gender:'girl'}
+];
+function makeAmbientPupil(index,x,z,activity){
+ const root=new THREE.Group(),model=avatar.clone(true);
+ model.traverse(o=>{if(o.isMesh&&o.material)o.material=o.material.clone()});
+ // Strip existing clothing/accessories from the source avatar clone.
+ for(const n of ['studentOutfit','studentHairShoes']){const old=model.getObjectByName(n);if(old)old.parent.remove(old)}
+ const extraIndex=avatar.children.indexOf(accessories);
+ if(extraIndex>=0&&model.children[extraIndex])model.children[extraIndex].clear();
+ const look={...defaultAppearance,...ambientLooks[index],accessories:[],pattern:'solid'};
+ for(const o of model.children)if(o.isMesh&&o.material?.color&&o.material.color.getHexString()==='ffd1aa')o.material.color.set(look.skin);
+ dressStudent(model,look);addHairAndShoes(model,look);
+ root.add(model);root.position.set(x,0,z);scene.add(root);
+ const pupil={root,model,activity,index,originX:x,originZ:z,phase:index*1.7,targetX:x,targetZ:z,wait:0};
+ ambientPupils.push(pupil);return pupil;
+}
+// One pupil quietly reading on a real stone bench.
+const reader=makeAmbientPupil(0,-13,30.5,'read');
+reader.model.position.y=-.52;reader.model.rotation.x=-.12;
+const book=new THREE.Group(),paper=new THREE.MeshBasicMaterial({color:0xfff7e2,side:THREE.DoubleSide}),cover=new THREE.MeshStandardMaterial({color:0x426da5,roughness:1});
+for(const side of [-1,1]){
+ const page=new THREE.Mesh(new THREE.BoxGeometry(.36,.045,.52),paper);page.position.x=side*.18;page.rotation.y=side*.12;book.add(page);
+}
+const spine=new THREE.Mesh(new THREE.BoxGeometry(.8,.055,.55),cover);spine.position.y=-.045;book.add(spine);
+book.position.set(0,1.18,.46);book.rotation.x=-.25;reader.model.add(book);
+// Four pupils in a circle playing Vietnamese shuttlecock kicking.
+const shuttlePlayers=[];
+for(let i=0;i<4;i++){
+ const a=i*Math.PI/2,px=7+Math.cos(a)*2.8,pz=8+Math.sin(a)*2.8;
+ const pupil=makeAmbientPupil(i+1,px,pz,'shuttle');pupil.angle=a;shuttlePlayers.push(pupil);
+}
+const shuttle=new THREE.Group(),shuttleHead=new THREE.Mesh(new THREE.SphereGeometry(.095,8,6),new THREE.MeshBasicMaterial({color:0xffffff}));
+shuttle.add(shuttleHead);
+for(let i=0;i<5;i++){const feather=new THREE.Mesh(new THREE.ConeGeometry(.045,.34,5),new THREE.MeshBasicMaterial({color:[0xe74e55,0xf8e5c4,0x5c9dd8][i%3]}));feather.position.set(Math.cos(i*2*Math.PI/5)*.075,.23,Math.sin(i*2*Math.PI/5)*.075);feather.rotation.z=Math.cos(i*2*Math.PI/5)*.35;shuttle.add(feather)}
+shuttleGroup.add(shuttle);
+// Three other pupils wander through the open courtyard.
+for(let i=0;i<3;i++)makeAmbientPupil(i+5,[-22,21,-4][i],[-8,-11,20][i],'wander');
+function updateAmbientPupils(t,dt){
+ const outdoor=floor===-1;
+ for(const pupil of ambientPupils){
+  pupil.root.visible=outdoor;
+  if(!outdoor)continue;
+  if(pupil.activity==='read'){book.rotation.z=Math.sin(t*.8)*.035;continue}
+  if(pupil.activity==='shuttle'){
+   const a=pupil.angle+t*.12;
+   pupil.root.position.x=7+Math.cos(a)*2.8;
+   pupil.root.position.z=8+Math.sin(a)*2.8;
+   pupil.root.rotation.y=Math.atan2(7-pupil.root.position.x,8-pupil.root.position.z);
+   pupil.model.position.y=Math.max(0,Math.sin(t*5+pupil.phase))*.08;
+   continue;
+  }
+  pupil.wait-=dt;
+  const dx=pupil.targetX-pupil.root.position.x,dz=pupil.targetZ-pupil.root.position.z;
+  const distance=Math.hypot(dx,dz);
+  if(distance<.4){
+   if(pupil.wait<=0){pupil.targetX=pupil.originX+Math.sin(t*.71+pupil.phase)*7;pupil.targetZ=pupil.originZ+Math.cos(t*.53+pupil.phase)*6;pupil.wait=3+pupil.index%3}
+   pupil.model.position.y=0;
+  }else{
+   const speed=.7+(pupil.index%3)*.17,step=Math.min(distance,dt*speed);
+   pupil.root.position.x+=dx/distance*step;pupil.root.position.z+=dz/distance*step;
+   pupil.root.rotation.y=Math.atan2(-dx,-dz);
+   pupil.model.position.y=Math.abs(Math.sin(t*8+pupil.phase))*.06;
+  }
+ }
+ shuttleGroup.visible=outdoor;
+ if(outdoor){
+  const a=t*1.3,sector=Math.floor(a)%4,f=a-Math.floor(a);
+  const p=shuttlePlayers[sector],q=shuttlePlayers[(sector+1)%4];
+  shuttleGroup.position.set(p.root.position.x+(q.root.position.x-p.root.position.x)*f,1.3+Math.sin(f*Math.PI)*1.55,p.root.position.z+(q.root.position.z-p.root.position.z)*f);
+  shuttle.rotation.y=t*2.2;
+ }
+}
+
+const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);updateSchoolNature(clock.elapsedTime);updateAmbientPupils(clock.elapsedTime,dt);bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
  const manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
 // Manual movement is camera-relative: W/up always moves into the scene from the current viewpoint.
 const cameraRightX=Math.cos(orbitYaw),cameraRightZ=-Math.sin(orbitYaw);
