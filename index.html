@@ -2423,7 +2423,7 @@ function bumAttach(conn){
  });
  conn.on('data',data=>bumReceive(conn.peer,data));
  conn.on('close',()=>{if(bumNet.connections.get(conn.peer)===conn){bumNet.connections.delete(conn.peer);if(bumNet.host){bumDropRemote(conn.peer);bumBroadcast({t:'peer-left',from:conn.peer})}}if(!bumNet.leaving){bumStatus('⚠️ Người chơi tạm mất kết nối');if(!bumNet.host)bumScheduleReconnect()}});
- conn.on('error',()=>bumStatus('⚠️ Kết nối với bạn bị lỗi'));
+ conn.on('error',()=>{bumStatus('⚠️ Kết nối với bạn bị lỗi');if(!bumNet.host)bumScheduleReconnect()});
 }
 function bumLeave(){
  sharedMission=null;sharedMissionClaimed=false;surpriseNotice.hidden=true;
@@ -2457,7 +2457,7 @@ async function bumStart(host=false){
    if(host){bumStatus('🟢 Đã vào sân trường chung (máy đang giữ phòng)');sharedMission=null;sharedMissionClaimed=false;}
    else{
     const conn=peer.connect(bumRoomId(BUM_SHARED_ROOM),{reliable:true});bumAttach(conn);
-    setTimeout(()=>{if(bumNet.peer===peer&&!conn.open&&!document.hidden)bumStart(true)},5500);
+    setTimeout(()=>{if(bumNet.peer!==peer||document.hidden||conn.open)return;const active=[...bumNet.connections.values()].some(c=>c.open);if(active)return;bumStatus('🔄 Chưa kết nối được, đang tìm lại phòng chung...');bumStart(true)},14000);
    }
   });
  }catch(e){bumStatus('⚠️ '+e.message)}
