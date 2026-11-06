@@ -1521,7 +1521,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
 renderer.domElement.addEventListener('pointercancel',e=>{activeCanvasPointers.delete(e.pointerId);lookPointer=null});renderer.domElement.addEventListener('lostpointercapture',e=>{activeCanvasPointers.delete(e.pointerId);if(lookPointer===e.pointerId)lookPointer=null});
 renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();orbitDistance+=Math.sign(e.deltaY)*2;clampCamera()},{passive:false});
 // Student emotes: reusable action registry; first action is a celebratory SIUU-style jump.
-const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6},hop:{label:'🦩 Nhảy lò cò 2 vòng',duration:8},juggle:{label:'⚽ Tâng bóng tại chỗ 8 giây',duration:8},giftfood:{label:'🍎 Tặng đồ ăn / nước uống cho bạn',duration:2.7}};
+const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6},hop:{label:'🦩 Nhảy lò cò 2 vòng',duration:8},juggle:{label:'⚽ Tâng bóng tại chỗ 8 giây',duration:8},shuttlejoin:{label:'🏸 Đá cầu cùng 4 bạn · 15 giây',duration:15},giftfood:{label:'🍎 Tặng đồ ăn / nước uống cho bạn',duration:2.7}};
 let studentAction=null;
 const studentActionProp=new THREE.Group();avatar.add(studentActionProp);
 const micStem=new THREE.Mesh(new THREE.CylinderGeometry(.055,.065,.58,10),new THREE.MeshStandardMaterial({color:'#283b50',metalness:.4,roughness:.35}));
@@ -1553,6 +1553,11 @@ function showTeacherRoleplayCaption(speech){
 function startStudentAction(id,extra={}){
  if(!studentActions[id]||!schoolGateUnlocked||!welcome.hidden||saoChase||saoEncounterOpen||seatedBench||document.getElementById('modal').style.display==='flex')return;
  autoTarget=null;studentActionProp.visible=id==='sing';
+ if(id==='shuttlejoin'){
+  if(floor!==-1){dialog('🏸 Đá cầu','Hãy ra sân trường để chơi cùng các bạn.');return}
+  if(Math.hypot(player.position.x+5,player.position.z-16)>13){dialog('🏸 Đá cầu cùng bạn','Hãy đến gần nhóm 4 bạn đang đá cầu ở sân trường rồi chọn lại hành động.');return}
+  extra={...extra,joinX:-5,joinZ:21.2};
+ }
  if(id==='hop'){
   const radius=2.8,heading=player.rotation.y;
   const cx=player.position.x-Math.cos(heading)*radius,cz=player.position.z+Math.sin(heading)*radius;
@@ -1591,13 +1596,16 @@ function installStudentActions(){
  button.style.cssText='position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 123px);z-index:65;padding:10px 13px;border:2px solid #f1c66c;border-radius:20px;background:#174f70;color:white;font:800 14px system-ui;cursor:pointer';
  const menu=document.createElement('div');menu.id='studentActionMenu';menu.hidden=true;
  menu.style.cssText='position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 173px);z-index:66;padding:9px;border-radius:14px;background:#173b57;box-shadow:0 6px 20px #0006';
- menu.style.maxHeight='min(65vh,480px)';menu.style.overflowY='auto';menu.style.display='flex';menu.style.flexDirection='column';menu.style.gap='6px';menu.hidden=true;
+ menu.style.width='min(510px,calc(100vw - 30px))';menu.style.maxHeight='min(72dvh,590px)';menu.style.overflowY='auto';menu.style.display='grid';menu.style.gridTemplateColumns='repeat(2,minmax(0,1fr))';menu.style.gap='8px';menu.style.boxSizing='border-box';menu.hidden=true;
+ const actionCategories=[['🎮 Vận động',['siu','juggle','shuttlejoin','hop','hiphop']],['🎭 Biểu diễn',['sing','teacher']],['🍎 Ăn uống',['eat','drink']],['🎁 Giao lưu',['gift','giftfood']]];
+ const actionButtons={};
  for(const [id,action] of Object.entries(studentActions)){
   const b=document.createElement('button');b.type='button';b.textContent=action.label;
   b.style.cssText='padding:11px 12px;border:0;border-radius:10px;background:#ffca60;color:#153951;font:800 13px system-ui;cursor:pointer;text-align:left';
-  b.onclick=()=>{menu.hidden=true;chooseStudentAction(id)};menu.append(b);
+  b.style.whiteSpace='normal';b.style.minHeight='50px';b.onclick=()=>{menu.hidden=true;menu.style.display='none';chooseStudentAction(id)};actionButtons[id]=b;
  }
- button.onclick=()=>{menu.hidden=!menu.hidden;menu.style.display=menu.hidden?'none':'flex'};menu.style.display='none';document.body.append(button,menu);
+ for(const [heading,ids] of actionCategories){const h=document.createElement('div');h.textContent=heading;h.style.cssText='grid-column:1/-1;color:#fff;font:900 15px system-ui;padding:7px 4px 2px;border-bottom:1px solid #ffffff55';menu.append(h);for(const id of ids)if(actionButtons[id])menu.append(actionButtons[id])}
+ button.onclick=()=>{menu.hidden=!menu.hidden;menu.style.display=menu.hidden?'none':'grid'};menu.style.display='none';document.body.append(button,menu);
 }
 installStudentActions();
 
@@ -1818,9 +1826,11 @@ function updateAmbientPupils(t,dt){
   if(!outdoor)continue;
   if(pupil.activity==='read'){book.rotation.z=Math.sin(t*.8)*.035;continue}
   if(pupil.activity==='shuttle'){
+   const joining=studentAction?.id==='shuttlejoin';
+   const radius=joining?4.5:2.8;
    const a=pupil.angle+t*.12;
-   pupil.root.position.x=-5+Math.cos(a)*2.8;
-   pupil.root.position.z=16+Math.sin(a)*2.8;
+   pupil.root.position.x=-5+Math.cos(a)*radius;
+   pupil.root.position.z=16+Math.sin(a)*radius;
    pupil.root.rotation.y=Math.atan2(-5-pupil.root.position.x,16-pupil.root.position.z);
    pupil.model.position.y=Math.max(0,Math.sin(t*5+pupil.phase))*.08;
    continue;
@@ -1840,8 +1850,10 @@ function updateAmbientPupils(t,dt){
  }
  shuttleGroup.visible=outdoor;
  if(outdoor){
-  const a=t*1.3,sector=Math.floor(a)%4,f=a-Math.floor(a);
-  const p=shuttlePlayers[sector],q=shuttlePlayers[(sector+1)%4];
+  const joining=studentAction?.id==='shuttlejoin';
+  const participants=joining?[...shuttlePlayers,{root:{position:player.position}}]:shuttlePlayers;
+  const a=t*1.3,sector=Math.floor(a)%participants.length,f=a-Math.floor(a);
+  const p=participants[sector],q=participants[(sector+1)%participants.length];
   shuttleGroup.position.set(p.root.position.x+(q.root.position.x-p.root.position.x)*f,1.3+Math.sin(f*Math.PI)*1.55,p.root.position.z+(q.root.position.z-p.root.position.z)*f);
   shuttle.rotation.y=t*2.2;
  }
@@ -2027,7 +2039,12 @@ let dx=manualX*cameraRightX-manualZ*cameraForwardX,
 if(saoChase){const chase=saoChase;autoTarget=null;standFromBench();dx=chase.dirX;dz=chase.dirZ;speed=chase.caught?7.8:10.8;}
 if(studentAction&&studentAction.id==='siu'){const actionT=(performance.now()-studentAction.started)/1000;if(actionT<1.05&&!studentAction.runStopped){dx=studentAction.dirX;dz=studentAction.dirZ;speed=8.8;if(blocked(player.position.x+dx*speed*dt,player.position.z+dz*speed*dt)){studentAction.runStopped=true;dx=0;dz=0}}else{dx=0;dz=0}}
 if(!saoChase&&autoTarget&&schoolGateUnlocked&&welcome.hidden){const dist=Math.hypot(autoTarget.x-player.position.x,autoTarget.z-player.position.z);if(dist<(autoTarget.walkOnly?.85:2.7)){const arrived=autoTarget;autoTarget=null;if(!arrived.walkOnly){near=arrived;interact()}else document.getElementById('tip').textContent='✅ Đã đến vị trí đã chọn'}else{const ux=(autoTarget.x-player.position.x)/dist,uz=(autoTarget.z-player.position.z)/dist;const candidates=[[ux,uz],[ux+uz*.75,uz-ux*.75],[ux-uz*.75,uz+ux*.75],[uz,-ux],[-uz,ux]];let found=false;for(const [cx,cz] of candidates){const n=Math.hypot(cx,cz),tx=cx/n,tz=cz/n;if(!blocked(player.position.x+tx*1.5,player.position.z+tz*1.5)){dx=tx;dz=tz;found=true;break}}if(!found){autoStuck+=dt;if(autoStuck>1.5){autoTarget=null;document.getElementById('tip').textContent='⚠️ Đường bị chắn. Chọn điểm gần hơn trên lối đi.'}}else autoStuck=0;speed=11}}
-if(studentAction&&studentAction.id==='hop'){
+if(studentAction&&studentAction.id==='shuttlejoin'){
+ const tx=studentAction.joinX,tz=studentAction.joinZ,dist=Math.hypot(tx-player.position.x,tz-player.position.z);
+ if(dist>.22){const step=Math.min(dist,dt*5);const nx=player.position.x+(tx-player.position.x)/dist*step,nz=player.position.z+(tz-player.position.z)/dist*step;if(!blocked(nx,nz)){player.position.x=nx;player.position.z=nz}}
+ dx=0;dz=0;
+ }
+ if(studentAction&&studentAction.id==='hop'){
  const t=Math.min(1,(performance.now()-studentAction.started)/8000);
  const angle=studentAction.startAngle+Math.PI*4*t;
  const nx=studentAction.cx+studentAction.radius*Math.cos(angle);
@@ -2058,6 +2075,10 @@ if(studentAction){
   arms[0].rotation.x=Math.sin(t*11.5*Math.PI)*.5;
   arms[1].rotation.x=-Math.sin(t*11.5*Math.PI)*.5;
   arms[0].rotation.z=-.6;arms[1].rotation.z=.6;
+ }else if(studentAction.id==='shuttlejoin'){
+  const beat=t*9;avatar.position.y=Math.max(0,Math.sin(beat))*.09;
+  legs[0].rotation.x=-Math.max(0,Math.sin(beat))*.9;legs[1].rotation.x=-Math.max(0,Math.sin(beat+Math.PI))*.8;
+  arms[0].rotation.z=-.45;arms[1].rotation.z=.45;
  }else if(studentAction.id==='juggle'){
   jugglingBall.visible=true;
   jugglingBall.position.set(player.position.x+Math.sin(player.rotation.y)*.55, .34+Math.abs(Math.sin(t*10.5))*1.35,player.position.z+Math.cos(player.rotation.y)*.55);
