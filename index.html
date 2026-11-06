@@ -707,7 +707,7 @@ function syncFloorVisibility(){const stageButton=document.getElementById('viewSt
 const roomGeometryCache=new Map();
 function roomBox(w,h,d,x,y,z,c){const key=w+','+h+','+d;let geometry=roomGeometryCache.get(key);if(!geometry){geometry=new THREE.BoxGeometry(w,h,d);roomGeometryCache.set(key,geometry)}const m=new THREE.Mesh(geometry,mat(c));m.position.set(x,y,z);indoor.add(m);if(constructingFloor===0)floorMeshes[0].push(m);return m}
 constructingFloor=0;roomBox(56,.4,30,0,-.2,0,'#e9d5b2');roomBox(56,5,.3,0,2.5,-12,'#f1f4ff');roomBox(20,5,.25,0,3,-11.8,'#286457');roomBox(.3,5,30,-28,2.5,0,'#edf3fa');roomBox(.3,5,30,28,2.5,0,'#edf3fa');roomBox(48,5,.3,0,2.5,14.8,'#edf3fa');
-for(const x of [-18,18])for(const z of [-8,-2,4])roomBox(.15,2.5,2.4,x,2.1,z,'#9ed9f5');
+// Removed floating divider panels that intersect student desks; keep classroom sightlines clear.
 roomBox(3,1.4,.6,0,.75,-10,'#d6a379');roomBox(3,.12,.7,0,1.5,-10,'#fff0d1');
 // Warm classroom decoration: window curtains, wall art, plants, reading corner and colorful rugs.
 function classWallArt(title,x,y,z,w=4.4,color='#f6d98e'){const c=document.createElement('canvas');c.width=768;c.height=256;const cx=c.getContext('2d');cx.fillStyle=color;cx.fillRect(0,0,768,256);cx.strokeStyle='#fffaf0';cx.lineWidth=20;cx.strokeRect(15,15,738,226);cx.fillStyle='#345b75';cx.textAlign='center';cx.textBaseline='middle';cx.font='bold 62px system-ui';cx.fillText(title,384,128,700);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(w,1.5),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);indoor.add(m);floorMeshes[0].push(m)}
