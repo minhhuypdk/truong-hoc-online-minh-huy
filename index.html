@@ -812,7 +812,7 @@ constructingFloor=0;roomBox(56,.4,30,0,-.2,0,'#e9d5b2');roomBox(56,5,.3,0,2.5,-1
 // Architectural depth: layered baseboards, pilasters, timber ceiling beams and inset ceiling lights.
 for(const x of [-27.6,27.6]){roomBox(.22,.34,29,x,.19,0,'#b8c9d7');roomBox(.22,.14,29,x,4.72,0,'#c5d8e5')}
 for(const z of [-11.6,14.45]){roomBox(55,.34,.2,0,.19,z,'#c7a983');roomBox(55,.15,.2,0,4.72,z,'#e6d3b3')}
-for(const z of [-10,-5,0,5,10]){roomBox(54,.22,.4,0,4.86,z,'#d7b58a');for(const x of [-18,0,18]){roomBox(3.6,.035,1.15,x,4.72,z,'#fff6d8')}}
+// Ceiling cross-beams and suspended panels removed: the overhead camera must see the blackboard and desks unobstructed.
 for(const z of [-9,-2,5,12])for(const x of [-27.55,27.55])roomBox(.2,4.2,.3,x,2.35,z,'#c3d7e0');
 // Floor planks provide visual scale and perspective without raising collision surfaces.
 for(let z=-11;z<=14;z+=1.45)roomBox(55,.015,.035,0,.025,z,'#d4b994');
