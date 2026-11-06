@@ -2355,10 +2355,10 @@ document.getElementById('communityCompose').onsubmit=e=>{
  e.preventDefault();const input=document.getElementById('communityInput'),message=input.value.trim().replace(/\s+/g,' ');if(!message)return;
  if(Date.now()-communityLastSend<2500){document.getElementById('communityHelp').textContent='⏳ Đợi một chút trước khi gửi tiếp nhé.';return}
  const issue=communityIssue(message);if(issue){document.getElementById('communityHelp').textContent='⚠️ '+issue;communityTeacherReply(issue);return}
- if(!bumNet.peer||(!bumNet.host&&![...bumNet.connections.values()].some(c=>c.open))){document.getElementById('communityHelp').textContent='⚠️ Đang kết nối sân trường. Vui lòng thử lại.';return}
+ const chatConnected=!!bumNet.peer&&(bumNet.host||[...bumNet.connections.values()].some(c=>c.open));
  communityLastSend=Date.now();const m={id:bumDeviceId+'-'+Date.now()+'-'+Math.random().toString(36).slice(2),name:bumName(),text:message,time:Date.now(),device:bumDeviceId};
  communityAdd(m);if(bumNet.host)bumBroadcast({t:'community-message',message:m});else for(const conn of bumNet.connections.values())bumSend(conn,{t:'community-message',message:m});
- input.value='';document.getElementById('communityHelp').textContent='🔒 Hãy trò chuyện văn minh và bảo vệ thông tin cá nhân.';
+ input.value='';document.getElementById('communityHelp').textContent=chatConnected?'🔒 Tin nhắn đã gửi trong phòng đang kết nối.':'📱 Đã lưu tin nhắn trên máy này. Chưa gửi đến thiết bị khác vì chưa kết nối.';
 };
 communityRender();
 
