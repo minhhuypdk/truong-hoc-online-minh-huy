@@ -1500,12 +1500,15 @@ const schoolGateUnlocked=true;
 restorePlayerLocation();if(floor===-1&&(!Number.isFinite(player.position.x)||!Number.isFinite(player.position.z)||Math.abs(player.position.x)>78||Math.abs(player.position.z)>46)){player.position.set(0,0,28);orbitYaw=0;orbitPitch=.65;orbitDistance=29}addEventListener('pagehide',savePlayerLocation);document.addEventListener('visibilitychange',()=>{if(document.hidden)savePlayerLocation()});
 /* Family multiplayer beta: no account, PeerJS public signaling + encrypted WebRTC data channels.
    Room codes are invitations, not authentication. Do not use for public rooms or private information. */
-const bumNet={peer:null,host:false,code:'',connections:new Map(),remotes:new Map(),lastSent:0,loading:null};
+const bumNet={peer:null,host:false,code:'',connections:new Map(),remotes:new Map(),lastSent:0,loading:null,reconnecting:false,leaving:false};
 const bumNetCss=document.createElement('style');bumNetCss.textContent=
 '#bumNetButton{position:fixed;left:12px;bottom:112px;z-index:10040;background:#174d78;color:white;border:2px solid #9ddcff;border-radius:13px;padding:10px 13px;font:800 13px system-ui;cursor:pointer;box-shadow:0 3px 12px #0005}'+
 '#bumNetPanel{position:fixed;left:12px;bottom:164px;z-index:10042;width:min(340px,calc(100vw - 24px));max-height:70vh;overflow:auto;padding:15px;border:2px solid #8dd8ff;border-radius:17px;background:#10344ef5;color:white;box-shadow:0 12px 30px #0007;font:14px system-ui}'+
 '#bumNetPanel[hidden]{display:none!important}#bumNetPanel button{border:0;border-radius:9px;padding:9px 11px;background:#ffcb62;color:#18334a;font-weight:800;cursor:pointer}#bumNetPanel input{padding:10px;width:100%;border-radius:9px;border:1px solid #8ad1f5;margin:7px 0;color:#18334a}'+
 '#bumNetPanel .netrow{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}#bumNetPanel .netmsg{font-size:12px;line-height:1.5;color:#d6edff;margin-top:8px}';
+bumNetCss.textContent+=
+'@media(max-width:700px){#bumNetButton{left:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 110px);font-size:12px;padding:9px 10px}#bumNetPanel{left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 160px);width:auto;max-height:min(58dvh,420px);padding:12px;font-size:13px;overscroll-behavior:contain}#bumNetPanel button{font-size:13px;padding:9px 10px}#bumNetPanel input{font-size:16px;min-height:42px}#bumNetPanel .netrow{gap:6px}#bumNetPanel .netmsg{font-size:11px}}'+
+'@media(max-height:600px){#bumNetPanel{bottom:72px;max-height:65dvh}}';
 document.head.append(bumNetCss);
 const bumNetBtn=document.createElement('button');bumNetBtn.id='bumNetButton';bumNetBtn.textContent='👫 Chơi cùng bạn';document.body.append(bumNetBtn);
 const bumNetPanel=document.createElement('section');bumNetPanel.id='bumNetPanel';bumNetPanel.hidden=true;
@@ -1576,14 +1579,15 @@ function bumAttach(conn){
   if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a});
  });
  conn.on('data',data=>bumReceive(conn.peer,data));
- conn.on('close',()=>{bumNet.connections.delete(conn.peer);bumDropRemote(conn.peer);bumStatus('Còn '+(bumNet.connections.size+1)+' máy trong phòng')});
+ conn.on('close',()=>{if(bumNet.connections.get(conn.peer)===conn)bumNet.connections.delete(conn.peer);if(!bumNet.leaving){const e=bumNet.remotes.get(conn.peer);if(e)e.updated=performance.now()-6000;bumStatus('⚠️ Một người chơi tạm mất kết nối');if(!bumNet.host)bumScheduleReconnect()}});
  conn.on('error',()=>bumStatus('⚠️ Kết nối với bạn bị lỗi'));
 }
 function bumLeave(){
+ bumNet.leaving=true;
  for(const conn of bumNet.connections.values())try{conn.close()}catch{}
  bumNet.connections.clear();for(const id of [...bumNet.remotes.keys()])bumDropRemote(id);
  if(bumNet.peer)try{bumNet.peer.destroy()}catch{}
- bumNet.peer=null;bumNet.code='';bumNet.host=false;bumStatus('Đã rời phòng');
+ bumNet.peer=null;bumNet.code='';bumNet.host=false;bumNet.reconnecting=false;bumStatus('Đã rời phòng');bumNet.leaving=false;
 }
 async function bumStart(host,code){
  bumLeave();bumStatus('⏳ Đang kết nối, vui lòng đợi...');
@@ -1613,7 +1617,7 @@ function bumNetFrame(dt){
  const now=performance.now();
  if(now-bumNet.lastSent>100){bumNet.lastSent=now;const data=bumPacket();if(bumNet.host)bumBroadcast(data);else for(const conn of bumNet.connections.values())bumSend(conn,data)}
  for(const [id,e] of bumNet.remotes){
-  e.root.visible=e.f===floor&&now-e.updated<8000;
+  e.root.visible=e.f===floor&&now-e.updated<120000;
   if(!e.root.visible)continue;
   const alpha=Math.min(1,dt*12);
   if(Math.hypot(e.targetX-e.root.position.x,e.targetZ-e.root.position.z)>20)e.root.position.set(e.targetX,0,e.targetZ);
@@ -1622,7 +1626,28 @@ function bumNetFrame(dt){
   e.model.position.y=e.a==='hiphop'?Math.abs(Math.sin(now*.012))*.2:e.a==='hop'?Math.abs(Math.sin(now*.016))*.3:0;
  }
 }
-addEventListener('pagehide',()=>{if(bumNet.peer)bumLeave()});
+// iOS may suspend Safari when the screen locks. Do not treat pagehide as an explicit leave.
+function bumScheduleReconnect(){
+ if(bumNet.reconnecting||bumNet.host||!bumNet.code||bumNet.leaving)return;
+ bumNet.reconnecting=true;
+ setTimeout(async()=>{
+  bumNet.reconnecting=false;
+  if(bumNet.leaving||bumNet.host||!bumNet.code||document.hidden)return;
+  const connected=[...bumNet.connections.values()].some(c=>c.open);
+  if(connected)return;
+  const code=bumNet.code;
+  bumStatus('🔄 Đang kết nối lại phòng '+code+'...');
+  await bumStart(false,code);
+ },1800);
+}
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden&&bumNet.peer){
+  const peer=bumNet.peer;
+  if(peer.disconnected&&!peer.destroyed)try{peer.reconnect()}catch{}
+  if(!bumNet.host&&!([...bumNet.connections.values()].some(c=>c.open)))bumScheduleReconnect();
+ }
+});
+addEventListener('pageshow',()=>{if(bumNet.peer&&!bumNet.host&&!([...bumNet.connections.values()].some(c=>c.open)))bumScheduleReconnect()});
 const bumInvite=new URLSearchParams(location.search).get('room');
 if(bumInvite&&/^[A-Z2-9]{6}$/i.test(bumInvite)){document.getElementById('bumRoomCode').value=bumInvite.toUpperCase();bumNetPanel.hidden=false;bumStatus('🔗 Có lời mời vào phòng '+bumInvite.toUpperCase()+'. Bấm “Vào phòng”.')}
 
