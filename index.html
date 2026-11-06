@@ -357,7 +357,7 @@ const appearanceKey='minh-huy-school-avatar-v1';const defaultAppearance={name:'H
 const faceMeshes=avatar.children.filter(m=>m.isMesh&&m.material.color.getHexString()==='ffd1aa');
 const accessories=new THREE.Group();avatar.add(accessories);
 function paintStudent(model,look){model.traverse(o=>{if(!o.isMesh)return;if(o.userData.studentSkin)o.material.color.set(look.skin)});const head=model.userData.hairMesh;if(head)head.material.color.set(look.hair)}
-function addStudentExtras(parent,look){if(look.gender==='girl'){const back=part(parent,new THREE.SphereGeometry(.34,12,10),look.hair,0,2.1,-.42);back.scale.y=1.45;part(parent,new THREE.SphereGeometry(.23,10,8),look.hair,.43,2.3,-.25);part(parent,new THREE.ConeGeometry(.52,.7,12),'#385b9a',0,.9,0)}
+function addStudentExtras(parent,look){if(look.gender==='girl'){/* Hair length is controlled exclusively by the selected hairstyle. */}
 const accessoryColors=look.accessoryColors||{};const selected=Array.isArray(look.accessories)?look.accessories:look.accessory&&look.accessory!=='none'?[look.accessory]:[];for(const acc of selected.slice(0,4)){const accessoryTint=accessoryColors[acc]||look.accessoryColor||'#e95e63';
 if(acc==='glasses'||acc==='sunglasses'){const col=accessoryTint;for(const x of [-.17,.17]){const lens=part(parent,new THREE.TorusGeometry(.145,.028,7,18),col,x,2.17,.43);lens.scale.y=.9;if(acc==='sunglasses')part(parent,new THREE.CircleGeometry(.13,18),'#26374d',x,2.17,.445)}part(parent,new THREE.BoxGeometry(.12,.035,.04),col,0,2.18,.45)}
 if(acc==='cap'){part(parent,new THREE.SphereGeometry(.49,16,8),accessoryTint,0,2.48,0).scale.y=.35;part(parent,new THREE.BoxGeometry(.65,.07,.36),accessoryTint,0,2.42,.35)}
@@ -409,7 +409,7 @@ if(false){const vc=mat(look.vestColor||'#242d46');for(const side of [-1,1]){cons
 const txt=Array.from(look.shirtText||'').slice(0,10).join('');if(txt){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=160;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,512,160);ctx.fillStyle=look.shirtTextColor||'#20304c';ctx.font='900 76px system-ui, sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,256,80,475);const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;const label=piece(new THREE.PlaneGeometry(.66,.23),new THREE.MeshBasicMaterial({map:tex,transparent:true,depthWrite:false,side:THREE.DoubleSide}),0,1.32,.405);label.renderOrder=3}
 }
 function setAppearance(){accessories.clear();hair.material.color.set(appearance.hair);for(const m of avatar.children){if(m.isMesh&&m.geometry.type==='SphereGeometry'&&m.position.y>2.43&&m.position.y<2.65&&m.position.z>.1)m.material.color.set(appearance.hair)} for(const m of faceMeshes)m.material.color.set(appearance.skin);for(const arm of arms)arm.traverse(o=>{if(o.isMesh&&o.material.color.getHexString()==='ffd1aa')o.material.color.set(appearance.skin)});addStudentExtras(accessories,appearance);dressStudent(avatar,appearance);addHairAndShoes(avatar,appearance);document.getElementById('customizeBtn').textContent='👤 Nhân vật'}
-const previewCanvas=document.getElementById('avatarPreview'),previewScene=new THREE.Scene();previewScene.background=new THREE.Color('#c5e9ff');previewScene.add(new THREE.HemisphereLight(0xffffff,0x96bbdc,2.8));const pLight=new THREE.DirectionalLight(0xffffff,2.5);pLight.position.set(3,6,5);previewScene.add(pLight);const previewCamera=new THREE.PerspectiveCamera(37,1,.1,30);previewCamera.position.set(0,2,6.5);previewCamera.lookAt(0,1.25,0);const previewRenderer=new THREE.WebGLRenderer({canvas:previewCanvas,antialias:true,powerPreference:'low-power'});previewRenderer.setPixelRatio(Math.min(devicePixelRatio,1.4));previewRenderer.outputColorSpace=THREE.SRGBColorSpace;const previewPivot=new THREE.Group();previewScene.add(previewPivot);let draft={...appearance,accessories:[...appearance.accessories],accessoryColors:{...(appearance.accessoryColors||{})}},previewAngle=0,previewFigure=null;
+const previewCanvas=document.getElementById('avatarPreview'),previewScene=new THREE.Scene();previewScene.background=new THREE.Color('#c5e9ff');previewScene.add(new THREE.HemisphereLight(0xffffff,0x96bbdc,2.8));const pLight=new THREE.DirectionalLight(0xffffff,2.5);pLight.position.set(3,6,5);previewScene.add(pLight);const fillLight=new THREE.DirectionalLight(0xcde9ff,1.0);fillLight.position.set(-3,3,-2);previewScene.add(fillLight);const previewCamera=new THREE.PerspectiveCamera(37,1,.1,30);previewCamera.position.set(0,2,6.5);previewCamera.lookAt(0,1.25,0);const previewRenderer=new THREE.WebGLRenderer({canvas:previewCanvas,antialias:true,powerPreference:'high-performance'});previewRenderer.setPixelRatio(Math.min(devicePixelRatio,2));previewRenderer.toneMapping=THREE.ACESFilmicToneMapping;previewRenderer.toneMappingExposure=1.12;previewRenderer.outputColorSpace=THREE.SRGBColorSpace;const previewPivot=new THREE.Group();previewScene.add(previewPivot);let draft={...appearance,accessories:[...appearance.accessories],accessoryColors:{...(appearance.accessoryColors||{})}},previewAngle=0,previewFigure=null;
 function refreshPreview(){if(previewFigure)previewPivot.remove(previewFigure);previewFigure=new THREE.Group();const body=avatar.clone(true);body.traverse(o=>{if(o.isMesh)o.material=o.material.clone()});const clonedOutfit=body.getObjectByName('studentOutfit');if(clonedOutfit)body.remove(clonedOutfit);const clonedExtras=body.children.find(o=>o.isGroup&&o.children.some(c=>c.isMesh&&c.position.y>2.4));if(clonedExtras)body.remove(clonedExtras);previewFigure.add(body);const ph=body.children.find(o=>o.isMesh&&o.geometry.type==='SphereGeometry'&&o.position.y>2.3&&o.position.y<2.5);if(ph)ph.material.color.set(draft.hair);body.traverse(o=>{if(o.isMesh&&['fff2e8','ffe9d7','ffd1aa','e6ad80','a96c4c','ffe0c4','f4bf95','d99b72','c6865c','865238','633d2d'].includes(o.material.color.getHexString()))o.material.color.set(draft.skin)});const extra=new THREE.Group();body.add(extra);addStudentExtras(extra,draft);dressStudent(body,draft);addHairAndShoes(body,draft);previewPivot.add(previewFigure);previewPivot.rotation.y=previewAngle;renderPreview()}
 function renderPreview(){if(document.getElementById('creator').hidden)return;const w=previewCanvas.clientWidth,h=previewCanvas.clientHeight;if(!w||!h)return;previewRenderer.setSize(w,h,false);previewCamera.aspect=w/h;previewCamera.updateProjectionMatrix();previewRenderer.render(previewScene,previewCamera)}
 const accessoryPalette=['#f8f5ed','#242d46','#e95e63','#f8b74e','#60b7df','#70bf84','#b08ad8','#ed9fc3','#aa7650','#f2d866','#7f858f','#ffffff'];
@@ -440,33 +440,54 @@ document.querySelectorAll('#creator .creator-tabs button').forEach(b=>b.addEvent
 for(const [id,key] of [['hairStyleOptions','hairStyle'],['shoeStyleOptions','shoeStyle'],['shoeColorOptions','shoeColor']]){
  document.getElementById(id).addEventListener('click',e=>{const b=e.target.closest('button[data-value]');if(!b)return;draft[key]=b.dataset.value;updateChoices();refreshPreview()});
 }
+/* Character model 3D v4: sculpted layered hair, distinct footwear silhouettes, soft materials */
 function addHairAndShoes(model,look){
- const previous=model.getObjectByName('studentHairShoes');if(previous)model.remove(previous);
+ const old=model.getObjectByName('studentHairShoes');if(old){model.remove(old);old.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}})}
  const group=new THREE.Group();group.name='studentHairShoes';model.add(group);
- const hairColor=look.hair||'#292c3b';
- function mesh(geo,color,x,y,z){const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color,roughness:.82}));m.position.set(x,y,z);group.add(m);return m}
- const style=look.hairStyle||'side';
- const fringe=(x,y,z,sx,sy,sz)=>{const m=mesh(new THREE.SphereGeometry(.17,12,9),hairColor,x,y,z);m.scale.set(sx,sy,sz)};
- if(style==='bangs'||style==='bob'){for(let i=-2;i<=2;i++)fringe(i*.15,2.48,.34,.65,.65,1.1)}
- if(style==='side'){for(let i=0;i<4;i++)fringe(-.22+i*.14,2.51-i*.025,.34,.95,.65,1)}
- if(style==='spiky'||style==='mohican'){for(let i=-2;i<=2;i++){const cone=mesh(new THREE.ConeGeometry(style==='mohican'?.12:.13,style==='mohican'?.35:.24,9),hairColor,i*(style==='mohican'?.09:.15),2.68,.02);cone.rotation.z=i*.14}}
- if(style==='long'||style==='ponytail'||style==='bob'){for(const x of [-.33,.33]){const m=mesh(new THREE.SphereGeometry(.23,12,10),hairColor,x,style==='bob'?2.12:1.97,-.17);m.scale.y=style==='bob'?1.3:1.85}}
- if(style==='ponytail'){const m=mesh(new THREE.SphereGeometry(.23,12,10),hairColor,0,2.18,-.51);m.scale.y=1.65}
- const shoe=look.shoeStyle||'sneaker',color=look.shoeColor||'#2985f5';
+ const skin=look.skin||'#ffd1aa',color=look.hair||'#292c3b',style=look.hairStyle||'side';
+ const hairMat=new THREE.MeshStandardMaterial({color,roughness:.83,metalness:0});
+ const shineMat=new THREE.MeshStandardMaterial({color:new THREE.Color(color).offsetHSL(0,0,.095),roughness:.72});
+ const shoeMat=new THREE.MeshStandardMaterial({color:look.shoeColor||'#2985f5',roughness:.65});
+ const soleMat=new THREE.MeshStandardMaterial({color:'#f8f7f3',roughness:.88});
+ const rubber=new THREE.MeshStandardMaterial({color:'#303b4d',roughness:.92});
+ const laceMat=new THREE.MeshStandardMaterial({color:'#ffffff',roughness:.8});
+ function put(geo,material,x,y,z,sx=1,sy=1,sz=1){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.scale.set(sx,sy,sz);group.add(m);return m}
+ function puff(x,y,z,rx,ry,rz,material=hairMat){return put(new THREE.SphereGeometry(1,20,14),material,x,y,z,rx,ry,rz)}
+ function strand(x,y,z,rx,ry,rz,angle=0){const p=puff(x,y,z,rx,ry,rz,shineMat);p.rotation.z=angle;return p}
+ // Hide original static fringe; customized styles own their silhouette.
+ model.children.filter(o=>o.isMesh&&o.geometry.type==='SphereGeometry'&&o.position.y>2.42&&o.position.y<2.72&&o.position.z>.1).forEach(o=>o.visible=false);
+ // Base skull hair cap and nape. The eight styles differ in length, shape and hairline.
+ const cap=puff(0,2.47,-.075,.465,.235,.435);
+ if(style==='short'){for(let i=-2;i<=2;i++)strand(i*.16,2.52,.255,.13,.085,.18,i*.05)}
+ else if(style==='side'){for(let i=0;i<5;i++)strand(-.3+i*.15,2.535-i*.019,.26,.17,.12,.20,-.23);strand(-.29,2.42,.27,.14,.18,.17,-.35)}
+ else if(style==='bangs'){for(let i=-3;i<=3;i++)strand(i*.115,2.47,.31,.095,.15,.15,i*.07)}
+ else if(style==='spiky'){for(let i=-3;i<=3;i++){const cone=put(new THREE.ConeGeometry(.115,.32+(i%2)*.06,12),hairMat,i*.13,2.69,.04);cone.rotation.z=-i*.15}strand(0,2.48,.31,.35,.09,.13)}
+ else if(style==='mohican'){cap.scale.x=.36/.465;for(let i=0;i<6;i++){const cone=put(new THREE.ConeGeometry(.14,.38,12),hairMat,0,2.68,-.29+i*.12);cone.rotation.x=.16}for(const x of [-.34,.34])puff(x,2.43,-.02,.065,.12,.3)}
+ else if(style==='long'){for(const x of [-.33,.33])puff(x,2.09,-.14,.16,.54,.27);puff(0,2.19,-.35,.33,.48,.17);for(let i=-2;i<=2;i++)strand(i*.13,2.48,.30,.13,.13,.15)}
+ else if(style==='ponytail'){for(const x of [-.3,.3])puff(x,2.35,-.1,.15,.25,.26);puff(0,2.23,-.43,.23,.29,.25);puff(0,1.97,-.54,.16,.36,.17);strand(-.16,2.47,.31,.26,.13,.15,-.2)}
+ else if(style==='bob'){for(const x of [-.35,.35])puff(x,2.25,-.04,.18,.34,.30);puff(0,2.34,-.35,.38,.28,.14);for(let i=-2;i<=2;i++)strand(i*.14,2.47,.31,.13,.14,.15)}
+ // Fine highlights are subtle; avoid harsh cone spikes in natural hairstyles.
+ if(['short','side','long','bob'].includes(style))for(const x of [-.19,.08,.25])strand(x,2.59,.03,.075,.035,.23,x*.4);
+ const shoe=look.shoeStyle||'sneaker';
+ const oldShoes=model.children.filter(o=>o.isGroup&&o.position.y===.82);
+ for(const leg of oldShoes)leg.children.filter(o=>o.isMesh&&o.position.y<-.52).forEach(o=>o.visible=false);
  for(const x of [-.2,.2]){
-  const high=['high','cartoon','boots'].includes(shoe);
-  const height=shoe==='boots'?.47:shoe==='high'?.32:shoe==='cartoon'?.28:.17;
-  const length=shoe==='cartoon'?.67:shoe==='runner'?.6:shoe==='boots'?.49:.51;
-  const width=shoe==='school'?.32:shoe==='slipon'?.34:.38;
-  const body=mesh(new THREE.BoxGeometry(width,height,length),color,x,height/2+.04,.11);
-  if(shoe==='boots'){mesh(new THREE.CylinderGeometry(.17,.19,.34,12),color,x,.31,-.06);mesh(new THREE.BoxGeometry(.4,.09,.54),'#34363d',x,.04,.13)}
-  else if(shoe==='school'){mesh(new THREE.BoxGeometry(.34,.045,.52),'#222936',x,.04,.13);mesh(new THREE.BoxGeometry(.3,.035,.1),'#d6d9e3',x,.19,.21)}
-  else if(shoe==='canvas'){mesh(new THREE.BoxGeometry(.4,.055,.55),'#e8ddc7',x,.04,.13);mesh(new THREE.BoxGeometry(.29,.09,.11),'#f8f8f8',x,.14,.38)}
-  else if(shoe==='slipon'){mesh(new THREE.BoxGeometry(.39,.065,.55),'#f7f7f7',x,.04,.13);mesh(new THREE.BoxGeometry(.28,.035,.16),'#263e60',x,.19,.08)}
-  else {mesh(new THREE.BoxGeometry(.4,.06,length+.04),shoe==='runner'?'#242b36':'#ffffff',x,.04,.12);if(shoe==='cartoon')mesh(new THREE.SphereGeometry(.15,12,8),'#ffffff',x,.17,.39);else for(let k=0;k<3;k++)mesh(new THREE.BoxGeometry(.21,.018,.026),'#ffffff',x,high?.29:.17,.01+k*.08)}
-  if(shoe==='runner'){const stripe=mesh(new THREE.BoxGeometry(.025,.08,.34),'#faff60',x+.2,.14,.09);stripe.rotation.z=.2}
+  const boot=shoe==='boots',high=shoe==='high',runner=shoe==='runner',school=shoe==='school',canvas=shoe==='canvas',cartoon=shoe==='cartoon',slip=shoe==='slipon';
+  const h=boot?.40:high?.29:cartoon?.23:.16;
+  const len=cartoon?.67:runner?.63:boot?.56:.54;
+  const wid=cartoon?.42:school?.34:.38;
+  const base=put(new THREE.BoxGeometry(wid+.035,.07,len+.06),boot?rubber:soleMat,x,.043,.135);
+  const upper=put(new THREE.SphereGeometry(1,18,12),shoeMat,x,.11+h*.42,.11,wid*.52,h*.56,len*.49);
+  put(new THREE.SphereGeometry(1,14,10),shoeMat,x,.12,.31,wid*.49,.105,.18);
+  if(boot){put(new THREE.CylinderGeometry(.16,.19,.39,16),shoeMat,x,.32,-.055);put(new THREE.BoxGeometry(.37,.045,.55),rubber,x,.035,.13)}
+  if(high){put(new THREE.CylinderGeometry(.16,.19,.25,16),shoeMat,x,.25,-.05);put(new THREE.BoxGeometry(.35,.04,.09),laceMat,x,.31,.16)}
+  if(runner){put(new THREE.BoxGeometry(.07,.10,.31),laceMat,x+.18,.14,.10).rotation.z=-.3;put(new THREE.BoxGeometry(.4,.04,.58),rubber,x,.035,.12)}
+  if(school){put(new THREE.BoxGeometry(.32,.04,.11),rubber,x,.20,.13);put(new THREE.BoxGeometry(.11,.025,.06),laceMat,x,.23,.14)}
+  if(canvas){put(new THREE.BoxGeometry(.39,.05,.57),soleMat,x,.05,.13);put(new THREE.BoxGeometry(.36,.08,.11),soleMat,x,.13,.36)}
+  if(slip){put(new THREE.BoxGeometry(.30,.04,.11),rubber,x,.19,.12)}
+  if(cartoon){puff(x,.15,.39,.18,.11,.17,soleMat)}
+  if(!boot&&!slip&&!school){for(let i=0;i<3;i++)put(new THREE.BoxGeometry(.21,.018,.025),laceMat,x,high?.35:.205,.02+i*.07)}
  }
-
 }
 
 function openCreator(){setCreatorTab('face');const existing=hasAvatar();const xp=availableXP();document.getElementById('avatarXpInfo').textContent=existing?'💎 Phí thay đổi mỗi lần: 25 XP · XP hiện có: '+xp+' · '+(xp>=25?'Đủ XP để thay đổi':'Chưa đủ XP để thay đổi'):'🎒 Tạo học sinh lần đầu miễn phí · XP hiện có: '+xp;document.getElementById('studentName').disabled=existing;document.getElementById('resetAvatar').hidden=existing;document.getElementById('saveAvatar').textContent=existing?'💎 LƯU THAY ĐỔI · 25 XP':'✓ TẠO HỌC SINH MIỄN PHÍ';draft={...appearance,accessories:[...appearance.accessories],accessoryColors:{...(appearance.accessoryColors||{})}};previewAngle=0;document.getElementById('studentName').value=appearance.name==='Học sinh'?'':appearance.name;document.getElementById('shirtText').value=draft.shirtText||'';document.getElementById('creator').hidden=false;updateChoices();refreshPreview();}
