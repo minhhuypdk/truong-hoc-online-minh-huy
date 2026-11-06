@@ -1591,18 +1591,24 @@ function bumLoadPeer(){
 function bumRoomId(code){return 'be-bum-family-v2-shared-school'}
 function bumMakeCode(){const b=new Uint8Array(4);crypto.getRandomValues(b);return Array.from(b,v=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[v%32]).join('')+'AB'}
 function bumName(){return String(appearance.name||'Học sinh').slice(0,24)}
-function bumPacket(){return {t:'state',name:bumName(),x:player.position.x,z:player.position.z,r:player.rotation.y,f:floor,a:studentAction?.id||'',at:studentAction?.started||0}}
+function bumPacket(){return {t:'state',name:bumName(),look:{...appearance,accessories:[...(appearance.accessories||[])],accessoryColors:{...(appearance.accessoryColors||{})}},x:player.position.x,z:player.position.z,r:player.rotation.y,f:floor,a:studentAction?.id||'',at:studentAction?.started||0}}
 function bumSend(conn,msg){if(conn?.open)try{conn.send(msg)}catch(e){console.warn('Multiplayer send',e)}}
 function bumBroadcast(msg,except){for(const [id,conn] of bumNet.connections)if(id!==except)bumSend(conn,msg)}
 function bumRemote(id){let entry=bumNet.remotes.get(id);if(entry)return entry;
  const root=new THREE.Group(),model=avatar.clone(true);
+ const extraIndex=avatar.children.indexOf(accessories);
+ const remoteExtras=extraIndex>=0?model.children[extraIndex]:null;
+ const remoteHair=model.children[avatar.children.indexOf(hair)];
  model.traverse(o=>{if(o.isMesh&&o.material)o.material=o.material.clone()});
+ // Remove local appearance-specific meshes before dressing the remote clone.
+ for(const groupName of ['studentOutfit','studentHairShoes']){const g=model.getObjectByName(groupName);if(g)g.parent.remove(g)}
+ if(remoteExtras)remoteExtras.clear();
  root.add(model);
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
  const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
  label.scale.set(3.8,.95,1);label.position.set(0,3.25,0);root.add(label);
- scene.add(root);entry={root,model,canvas,texture,name:'',targetX:0,targetZ:0,targetR:0,f:-99,a:'',updated:performance.now()};
+ scene.add(root);entry={root,model,remoteExtras,remoteHair,canvas,texture,name:'',lookKey:'',targetX:0,targetZ:0,targetR:0,f:-99,a:'',updated:performance.now()};
  bumNet.remotes.set(id,entry);return entry;
 }
 function bumDropRemote(id){const e=bumNet.remotes.get(id);if(!e)return;scene.remove(e.root);e.texture.dispose();e.root.traverse(o=>{if(o.isSprite)o.material.dispose()});bumNet.remotes.delete(id)}
@@ -1610,7 +1616,23 @@ function bumReceive(id,data){
  if(!data||typeof data!=='object')return;
  if(data.t==='state'){
   if(!Number.isFinite(data.x)||!Number.isFinite(data.z)||!Number.isFinite(data.r)||!Number.isInteger(data.f)||Math.abs(data.x)>400||Math.abs(data.z)>400)return;
-  const e=bumRemote(id);e.targetX=data.x;e.targetZ=data.z;e.targetR=data.r;e.f=data.f;e.a=typeof data.a==='string'?data.a.slice(0,16):'';e.updated=performance.now();
+  const e=bumRemote(id);
+  if(data.look&&typeof data.look==='object'){
+   const look={...defaultAppearance,...data.look};
+   look.accessories=Array.isArray(look.accessories)?look.accessories.filter(x=>typeof x==='string').slice(0,4):[];
+   const key=JSON.stringify(look);
+   if(key!==e.lookKey){
+    e.lookKey=key;
+    const clone=e.model;
+    if(e.remoteExtras)e.remoteExtras.clear();
+    for(const m of clone.children){if(m.isMesh&&m.material?.color&&m.material.color.getHexString()==='ffd1aa')m.material.color.set(look.skin)}
+    const hairClone=e.remoteHair;
+    if(hairClone?.material?.color)hairClone.material.color.set(look.hair);
+    if(e.remoteExtras)addStudentExtras(e.remoteExtras,look);
+    dressStudent(clone,look);addHairAndShoes(clone,look);
+   }
+  }
+  e.targetX=data.x;e.targetZ=data.z;e.targetR=data.r;e.f=data.f;e.a=typeof data.a==='string'?data.a.slice(0,16):'';e.updated=performance.now();
   const name=String(data.name||'Bạn học').slice(0,24);
   if(name!==e.name){e.name=name;const ctx=e.canvas.getContext('2d');ctx.clearRect(0,0,512,128);ctx.fillStyle='#15476b';ctx.beginPath();ctx.roundRect(6,8,500,112,32);ctx.fill();ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 49px system-ui';ctx.fillText(name,256,64,465);e.texture.needsUpdate=true}
   if(bumNet.host)bumBroadcast({...data,t:'relay',from:id},id);
@@ -1638,7 +1660,7 @@ function bumAttach(conn){
  conn.on('open',()=>{
   bumStatus('🟢 Sân trường chung: '+(bumNet.connections.size+1)+' người đang kết nối');
   bumSend(conn,bumPacket());
-  if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a});
+  if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,look:e.lookKey?JSON.parse(e.lookKey):undefined,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a});
  });
  conn.on('data',data=>bumReceive(conn.peer,data));
  conn.on('close',()=>{if(bumNet.connections.get(conn.peer)===conn)bumNet.connections.delete(conn.peer);if(!bumNet.leaving){bumStatus('⚠️ Người chơi tạm mất kết nối');if(!bumNet.host)bumScheduleReconnect()}});
