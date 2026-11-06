@@ -732,11 +732,11 @@ function readWellbeing(){try{return JSON.parse(localStorage.getItem(wellbeingKey
 function updateWellbeing(stamina,wisdom){let all={};try{all=JSON.parse(localStorage.getItem(wellbeingKey)||'{}')||{}}catch{}const old=readWellbeing();all[appearance.name]={stamina:Math.min(100,(old.stamina||0)+stamina),wisdom:Math.min(100,(old.wisdom||0)+wisdom)};localStorage.setItem(wellbeingKey,JSON.stringify(all))}
 function giftRecipient(next){const name=prompt('Nhập tên bạn học sinh nhận quà (không nhập thông tin cá nhân khác):','');if(name===null)return;const recipient=name.trim().slice(0,24);if(!recipient){dialog('🎁 Chưa có người nhận','Hãy nhập tên người nhận hợp lệ.');return}next(recipient)}
 function openCanteen(){if(!hasAvatar()){notice('Em hãy tạo học sinh trước.');return}const w=readWellbeing();dialog('🍱 Căn tin · '+availableXP()+' XP','Thể lực: '+w.stamina+'/100 · Trí tuệ: '+w.wisdom+'/100. Mua món ăn uống để bồi dưỡng sức dẻo dai, trí tuệ cho nhiệm vụ. Có thể tặng bạn (ghi nhận trên thiết bị này).',canteenMenu.map(([name,cost,stamina,wisdom])=>[name+' · '+cost+' XP · 💪+'+stamina+' 🧠+'+wisdom,()=>dialog(name,'Chọn cách sử dụng món ăn. XP hiện có: '+availableXP()+'.',[['🍴 Tự ăn / uống',()=>buyCanteen(name,cost,stamina,wisdom,null)],['🎁 Tặng bạn',()=>giftRecipient(to=>buyCanteen(name,cost,stamina,wisdom,to))],['↩ Quay lại',openCanteen]])]))}
-function buyCanteen(name,cost,stamina,wisdom,recipient){if(availableXP()<cost){dialog('❌ Không đủ XP','Món '+name+' cần '+cost+' XP, em hiện có '+availableXP()+' XP.',[['Về căn tin',openCanteen]]);return}if(!spendXP(cost))return;if(recipient){saveGift(name,recipient);dialog('🎁 Đã chuẩn bị quà',name+' dành cho '+recipient+' đã được ghi vào sổ quà trên thiết bị này. Chưa gửi trực tuyến.',[['Về căn tin',openCanteen]])}else{updateWellbeing(stamina,wisdom);const w=readWellbeing();dialog('😋 Ăn uống ngon miệng!',name+' giúp tăng thể lực và trí tuệ!\n💪 '+w.stamina+'/100 · 🧠 '+w.wisdom+'/100. Còn '+availableXP()+' XP.',[['Về căn tin',openCanteen]])}}
+function buyCanteen(name,cost,stamina,wisdom,recipient){if(availableXP()<cost){dialog('❌ Không đủ XP','Món '+name+' cần '+cost+' XP, em hiện có '+availableXP()+' XP.',[['Về căn tin',openCanteen]]);return}if(!spendXP(cost))return;if(recipient){saveGift(name,recipient);actionGive(name,1,recipient);dialog('🎁 Đã chuẩn bị quà',name+' dành cho '+recipient+' đã được ghi vào sổ quà trên thiết bị này. Chưa gửi trực tuyến.',[['Về căn tin',openCanteen]])}else{actionGive(name,1);updateWellbeing(stamina,wisdom);const w=readWellbeing();dialog('😋 Ăn uống ngon miệng!',name+' giúp tăng thể lực và trí tuệ!\n💪 '+w.stamina+'/100 · 🧠 '+w.wisdom+'/100. Còn '+availableXP()+' XP.',[['Về căn tin',openCanteen]])}}
 function saveGift(item,to){let all=[];try{all=JSON.parse(localStorage.getItem(inventoryKey)||'[]');if(!Array.isArray(all))all=[]}catch{}all.push({from:appearance.name,to,item,date:new Date().toISOString()});localStorage.setItem(inventoryKey,JSON.stringify(all))}
 const souvenirGifts=[['✏️ Bộ bút chì',15],['📓 Vở học sinh',18],['🖍️ Hộp bút màu',35],['📐 Bộ thước kẻ',20],['🎒 Cặp sách mini',65],['🧸 Gấu bông',70],['🎀 Thiệp chúc mừng',12],['🌹 Hoa hồng',22],['🌻 Hoa hướng dương',25],['💐 Bó hoa tươi',55],['🎁 Hộp quà bí mật',60]];
 function openGiftShop(){dialog('🎁 Dụng cụ học tập · Quà · Hoa','XP hiện có: '+availableXP()+'. Mua cho mình hoặc ghi nhận món quà tặng bạn học.',souvenirGifts.map(([name,cost])=>[name+' · '+cost+' XP',()=>dialog(name,'Giá '+cost+' XP · Số dư '+availableXP()+' XP',[['🛍️ Mua cho mình',()=>buyGift(name,cost,appearance.name)],['💌 Tặng bạn',()=>giftRecipient(to=>buyGift(name,cost,to))],['↩ Quay lại',openGiftShop]])]))}
-function buyGift(name,cost,to){if(availableXP()<cost){dialog('❌ Không đủ XP','Cần '+cost+' XP. Hiện có '+availableXP()+' XP.',[['Quay lại',openGiftShop]]);return}if(!spendXP(cost))return;saveGift(name,to);dialog('🎉 Mua thành công',name+' đã được ghi nhận cho '+to+'. XP còn: '+availableXP()+'. Quà chỉ lưu trên thiết bị này, chưa chuyển trực tuyến.',[['Tiếp tục mua',openGiftShop],['Đóng',()=>{}]])}
+function buyGift(name,cost,to){if(availableXP()<cost){dialog('❌ Không đủ XP','Cần '+cost+' XP. Hiện có '+availableXP()+' XP.',[['Quay lại',openGiftShop]]);return}if(!spendXP(cost))return;saveGift(name,to);actionGive(name,1,to);dialog('🎉 Mua thành công',name+' đã được ghi nhận cho '+to+'. XP còn: '+availableXP()+'. Quà chỉ lưu trên thiết bị này, chưa chuyển trực tuyến.',[['Tiếp tục mua',openGiftShop],['Đóng',()=>{}]])}
 function openGiftLedger(){let gifts=[];try{gifts=JSON.parse(localStorage.getItem(inventoryKey)||'[]')}catch{}const own=gifts.filter(g=>g.from===appearance.name||g.to===appearance.name);dialog('🎁 Sổ quà học sinh',own.length?own.slice(-15).reverse().map(g=>g.item+' · '+g.from+' → '+g.to).join('\n'):'Chưa có món quà nào được ghi nhận.',[['Đóng',()=>{}]])}
 function openSouvenirShop(){if(!hasAvatar()){notice('Em cần tạo học sinh trước khi mua sắm.');return}const owned=ownedSkins();const actions=souvenirSkins.map(item=>[owned.includes(item.id)?'✨ '+item.name+' · ĐÃ MUA / MẶC':'✨ '+item.name+' · '+item.cost+' XP',()=>{if(ownedSkins().includes(item.id)){equipSkin(item);return}if(availableXP()<item.cost){dialog('⭐ Chưa đủ XP','Em cần '+item.cost+' XP. Hiện có '+availableXP()+' XP.',[['Quay lại quầy',openSouvenirShop]]);return}if(!confirm('Đổi '+item.cost+' XP lấy '+item.name+'? Skin sẽ được lưu vĩnh viễn trong tủ đồ trên thiết bị này.'))return;if(!spendXP(item.cost))return;saveOwnedSkins([...ownedSkins(),item.id]);dialog('✨ Mua skin thành công','Đã thêm '+item.name+' vào tủ đồ! Còn '+availableXP()+' XP. Em có thể mặc lại bất cứ lúc nào mà không mất XP.',[['👗 Mở tủ đồ',openWardrobe],['✨ Mặc ngay',()=>equipSkin(item)],['Tiếp tục mua',openSouvenirShop]])}]);actions.push(['✏️ Dụng cụ học tập · Quà · Hoa',openGiftShop],['📒 Sổ quà',openGiftLedger],['👗 Mở tủ đồ',openWardrobe]);dialog('✨ 🎁 Quầy lưu niệm · '+availableXP()+' XP','Trang phục lấp lánh cao cấp! Mỗi skin chỉ mua một lần; skin đã mua sẽ nằm trong tủ đồ và có thể thay miễn phí.',actions)}
 document.getElementById('souvenirShopBtn').onclick=openSouvenirShop;document.getElementById('wardrobeBtn').onclick=openWardrobe;
@@ -1319,13 +1319,47 @@ renderer.domElement.addEventListener('pointerup',e=>{e.preventDefault();const wa
 renderer.domElement.addEventListener('pointercancel',e=>{activeCanvasPointers.delete(e.pointerId);lookPointer=null});renderer.domElement.addEventListener('lostpointercapture',e=>{activeCanvasPointers.delete(e.pointerId);if(lookPointer===e.pointerId)lookPointer=null});
 renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();orbitDistance+=Math.sign(e.deltaY)*2;clampCamera()},{passive:false});
 // Student emotes: reusable action registry; first action is a celebratory SIUU-style jump.
-const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65}};
+const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6}};
 let studentAction=null;
-function startStudentAction(id){
+// Local inventory uses the existing souvenir ledger; online gift delivery is not implemented.
+const actionInventoryKey='be-bum-action-inventory-v1';
+function actionStock(){
+ let all={};try{all=JSON.parse(localStorage.getItem(actionInventoryKey)||'{}')||{}}catch{}
+ if(!all[appearance.name])all[appearance.name]={};
+ return {all,items:all[appearance.name]};
+}
+function actionStockSave(all){try{localStorage.setItem(actionInventoryKey,JSON.stringify(all))}catch{}}
+function actionGive(item,qty=1,owner=appearance.name){const {all}=actionStock();all[owner]??={};all[owner][item]=(all[owner][item]||0)+qty;actionStockSave(all)}
+function actionConsume(item){const {all,items}=actionStock();if((items[item]||0)<1)return false;items[item]--;actionStockSave(all);return true}
+function actionOwnedChoices(type){
+ const {items}=actionStock();const list=Object.entries(items).filter(([name,n])=>n>0&&(type==='food'?/bánh|sữa|nước|trà|sinh tố|cam|flan|cake|juice/i.test(name):/hoa|quà|gấu|thiệp|bút|vở|thước|cặp/i.test(name)));
+ return list;
+}
+function startStudentAction(id,extra={}){
  if(!studentActions[id]||!schoolGateUnlocked||!welcome.hidden||saoChase||saoEncounterOpen||seatedBench||document.getElementById('modal').style.display==='flex')return;
- autoTarget=null;studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false};
- const menu=document.getElementById('studentActionMenu');if(menu)menu.hidden=true;
- document.getElementById('tip').textContent='⚽ SIUUU! Ăn mừng!';
+ autoTarget=null;studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false,...extra};
+ const menu=document.getElementById('studentActionMenu');if(menu){menu.hidden=true;menu.style.display='none'};
+ document.getElementById('tip').textContent=studentActions[id].label;
+ if(id==='teacher')speakGameVietnamese('Ta là thầy Huy đây! Các em không được quậy phá! Sao đỏ! Em ghi tên học sinh này lại cho tôi!',{purpose:'roleplay'});
+}
+function chooseStudentAction(id){
+ if(id==='eat'||id==='drink'||id==='gift'){
+  const items=actionOwnedChoices(id==='gift'?'gift':'food').filter(([name])=>id==='eat'?!/nước|sữa|trà|sinh tố|juice/i.test(name):id==='drink'?/nước|sữa|trà|sinh tố|juice/i.test(name):true);
+  if(!items.length){dialog('🎒 Tủ đồ trống','Chưa có '+(id==='gift'?'hoa hoặc quà':'đồ ăn / thức uống')+' phù hợp. Hãy đến căn tin hoặc quầy lưu niệm mua trước. Các món mua từ phiên bản này sẽ được thêm vào tủ đồ hành động.',[['Đóng',()=>{}]]);return}
+  dialog('🎒 Chọn vật phẩm','Chọn 1 món từ tủ đồ. Mỗi hành động sẽ trừ 1 món.',items.map(([name,n])=>[name+' · còn '+n,()=>{
+   if(id==='gift'){giftRecipient(to=>{
+    if(to.toLocaleLowerCase('vi')===appearance.name.toLocaleLowerCase('vi')){dialog('🎁 Chọn bạn khác','Không thể tự tặng quà cho mình.');return}
+    if(!actionConsume(name))return;
+    actionGive(name,1,to);saveGift(name,to);
+    dialog('💐 Đã tặng quà trên thiết bị này','Đã trừ 1 '+name+' khỏi tủ của '+appearance.name+' và cộng 1 vào tủ của '+to+'. Chưa đồng bộ trực tuyến.',[['Xem hoạt ảnh',()=>startStudentAction('gift',{item:name,recipient:to})]]);
+   })}else{
+    if(!actionConsume(name))return;
+    startStudentAction(id,{item:name});
+   }
+  }]));
+  return;
+ }
+ startStudentAction(id);
 }
 function installStudentActions(){
  if(document.getElementById('studentActionButton'))return;
@@ -1333,9 +1367,13 @@ function installStudentActions(){
  button.style.cssText='position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 123px);z-index:65;padding:10px 13px;border:2px solid #f1c66c;border-radius:20px;background:#174f70;color:white;font:800 14px system-ui;cursor:pointer';
  const menu=document.createElement('div');menu.id='studentActionMenu';menu.hidden=true;
  menu.style.cssText='position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom, 0px) + 173px);z-index:66;padding:9px;border-radius:14px;background:#173b57;box-shadow:0 6px 20px #0006';
- const siu=document.createElement('button');siu.type='button';siu.textContent=studentActions.siu.label;siu.style.cssText='padding:12px;border:0;border-radius:10px;background:#ffca60;color:#153951;font:800 14px system-ui;cursor:pointer';
- siu.onclick=()=>startStudentAction('siu');menu.append(siu);
- button.onclick=()=>{menu.hidden=!menu.hidden};document.body.append(button,menu);
+ menu.style.maxHeight='min(65vh,480px)';menu.style.overflowY='auto';menu.style.display='flex';menu.style.flexDirection='column';menu.style.gap='6px';menu.hidden=true;
+ for(const [id,action] of Object.entries(studentActions)){
+  const b=document.createElement('button');b.type='button';b.textContent=action.label;
+  b.style.cssText='padding:11px 12px;border:0;border-radius:10px;background:#ffca60;color:#153951;font:800 13px system-ui;cursor:pointer;text-align:left';
+  b.onclick=()=>{menu.hidden=true;chooseStudentAction(id)};menu.append(b);
+ }
+ button.onclick=()=>{menu.hidden=!menu.hidden;menu.style.display=menu.hidden?'none':'flex'};menu.style.display='none';document.body.append(button,menu);
 }
 installStudentActions();
 const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05),manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
@@ -1347,6 +1385,7 @@ let dx=manualX*cameraRightX-manualZ*cameraForwardX,
 if(saoChase){const chase=saoChase;autoTarget=null;standFromBench();dx=chase.dirX;dz=chase.dirZ;speed=chase.caught?7.8:10.8;}
 if(studentAction&&studentAction.id==='siu'){const actionT=(performance.now()-studentAction.started)/1000;if(actionT<1.05&&!studentAction.runStopped){dx=studentAction.dirX;dz=studentAction.dirZ;speed=8.8;if(blocked(player.position.x+dx*speed*dt,player.position.z+dz*speed*dt)){studentAction.runStopped=true;dx=0;dz=0}}else{dx=0;dz=0}}
 if(!saoChase&&autoTarget&&schoolGateUnlocked&&welcome.hidden){const dist=Math.hypot(autoTarget.x-player.position.x,autoTarget.z-player.position.z);if(dist<(autoTarget.walkOnly?.85:2.7)){const arrived=autoTarget;autoTarget=null;if(!arrived.walkOnly){near=arrived;interact()}else document.getElementById('tip').textContent='✅ Đã đến vị trí đã chọn'}else{const ux=(autoTarget.x-player.position.x)/dist,uz=(autoTarget.z-player.position.z)/dist;const candidates=[[ux,uz],[ux+uz*.75,uz-ux*.75],[ux-uz*.75,uz+ux*.75],[uz,-ux],[-uz,ux]];let found=false;for(const [cx,cz] of candidates){const n=Math.hypot(cx,cz),tx=cx/n,tz=cz/n;if(!blocked(player.position.x+tx*1.5,player.position.z+tz*1.5)){dx=tx;dz=tz;found=true;break}}if(!found){autoStuck+=dt;if(autoStuck>1.5){autoTarget=null;document.getElementById('tip').textContent='Đường bị chắn, hãy di chuyển gần NPC hơn'}}else autoStuck=0;speed=11}}
+if(studentAction&&studentAction.id==='sing'){const actionT=(performance.now()-studentAction.started)/1000;if(actionT<6){dx=studentAction.dirX;dz=studentAction.dirZ;speed=1.45;if(blocked(player.position.x+dx*speed*dt,player.position.z+dz*speed*dt)){dx=0;dz=0}}}
 const norm=Math.max(1,Math.hypot(dx,dz)),vx=dx/norm*speed*dt,vz=dz/norm*speed*dt;if(schoolGateUnlocked&&welcome.hidden&&!blocked(player.position.x+vx,player.position.z))player.position.x+=vx;if(welcome.hidden&&!blocked(player.position.x,player.position.z+vz))player.position.z+=vz;const moving=Math.hypot(vx,vz)>.001;if(schoolGateUnlocked&&welcome.hidden&&performance.now()-lastLocationSave>1800){lastLocationSave=performance.now();savePlayerLocation()}if(moving)player.rotation.y=Math.atan2(vx,vz);const walk=moving?Math.sin(clock.elapsedTime*(saoChase?22:12))*(saoChase?.8:.48):0;legs[0].rotation.x=seatedBench?-1.15:walk;legs[1].rotation.x=seatedBench?-1.15:-walk;if(!shotActive){arms[0].rotation.x=-walk*.65;arms[1].rotation.x=walk*.65;}avatar.position.y=seatedBench?-.45:moving?Math.abs(Math.sin(clock.elapsedTime*(saoChase?22:12)))*(saoChase?.12:.065):0;
 if(studentAction){
  const t=(performance.now()-studentAction.started)/1000;
@@ -1354,6 +1393,29 @@ if(studentAction){
   studentAction=null;avatar.rotation.y=0;avatar.rotation.z=0;avatar.position.y=0;
   arms[0].rotation.x=0;arms[1].rotation.x=0;arms[0].rotation.z=0;arms[1].rotation.z=0;
   legs[0].rotation.x=0;legs[1].rotation.x=0;
+ }else if(studentAction.id==='hiphop'){
+  const beat=t*2*Math.PI*1.65;
+  avatar.position.y=Math.abs(Math.sin(beat))*.24;
+  avatar.rotation.y=Math.sin(t*3)*.45;avatar.rotation.z=Math.sin(beat)*.13;
+  legs[0].rotation.x=Math.sin(beat)*.7;legs[1].rotation.x=-Math.sin(beat)*.7;
+  arms[0].rotation.x=Math.sin(beat+1)*1.2;arms[1].rotation.x=Math.sin(beat+3)*1.2;
+  arms[0].rotation.z=-.65;arms[1].rotation.z=.65;
+ }else if(studentAction.id==='sing'){
+  const beat=t*8;avatar.position.y=Math.abs(Math.sin(beat))*.045;
+  avatar.rotation.z=Math.sin(beat)*.07;arms[0].rotation.x=-1.55;arms[0].rotation.z=-.25;
+  arms[1].rotation.x=Math.sin(beat)*.6;arms[1].rotation.z=.5;
+  legs[0].rotation.x=Math.sin(beat)*.24;legs[1].rotation.x=-Math.sin(beat)*.24;
+ }else if(studentAction.id==='teacher'){
+  const beat=t*5;avatar.rotation.z=Math.sin(beat)*.045;
+  arms[0].rotation.x=-1.3;arms[1].rotation.x=-.8+Math.sin(beat)*.35;
+  arms[0].rotation.z=-.3;arms[1].rotation.z=.55;
+ }else if(studentAction.id==='eat'||studentAction.id==='drink'){
+  const beat=t*9;arms[0].rotation.x=-1.75+Math.sin(beat)*.2;
+  arms[1].rotation.x=-.3;avatar.rotation.z=Math.sin(beat)*.025;
+ }else if(studentAction.id==='gift'){
+  arms[0].rotation.x=-1.45;arms[1].rotation.x=-1.45;
+  arms[0].rotation.z=-.4;arms[1].rotation.z=.4;
+  avatar.rotation.z=Math.sin(t*5)*.035;
  }else if(studentAction.id==='siu'){
   // Phase 1: run-up (0-1.05s); phase 2: plant and jump (1.05-2.12s);
   // phase 3: land with both arms spread and hold the celebration (2.12-3.65s).
