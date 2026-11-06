@@ -776,7 +776,7 @@ function save(){localStorage.setItem('minh-huy-school-alpha',JSON.stringify(stat
 function npcMissionProgress(){try{return JSON.parse(localStorage.getItem(npcMissionKey)||'{}')||{}}catch{return {}}}
 function npcMissionBonus(){return Object.values(npcMissionProgress()).reduce((n,v)=>n+(Number(v)||0),0)}
 const surpriseKey='be-bum-surprise-missions-v1';
-function surpriseStateRead(){try{const v=JSON.parse(localStorage.getItem(surpriseKey)||'{}');return {xp:Number(v.xp)||0,done:Array.isArray(v.done)?v.done:[]}}catch{return {xp:0,done:[]}}}
+function surpriseStateRead(){try{const v=JSON.parse(localStorage.getItem(surpriseKey)||'{}');return {xp:Number(v.xp)||0,done:Array.isArray(v.done)?v.done:[],recent:Array.isArray(v.recent)?v.recent:[]}}catch{return {xp:0,done:[],recent:[]}}}
 let surpriseState=surpriseStateRead();
 function earnedXP(){return (state.complete?60:0)+(state.anComplete?40:0)+(state.quizDone?30:0)+(state.lessonDone?50:0)+(state.libraryDone?40:0)+(typeof basketAwarded==='number'?basketAwarded:0)+npcMissionBonus()+surpriseState.xp}const xpSpentKey='be-bum-xp-spent-v1';function spentXP(){return Math.max(0,Number(localStorage.getItem(xpSpentKey))||0)}function availableXP(){return Math.max(0,earnedXP()-spentXP())}function spendXP(cost){if(availableXP()<cost)return false;localStorage.setItem(xpSpentKey,String(spentXP()+cost));update();return true}function update(){const xp=availableXP(),level=1+Math.floor(earnedXP()/100);checkLevelWheel();document.getElementById('progress').textContent=state.libraryDone&&state.lessonDone?'🏆 Alpha 0.4 hoàn thành':state.quizDone?'📚 Khám phá lớp học':state.anComplete?'🏫 Vào tòa nhà học':state.anStarted?'📗 Cô Nhi: '+state.anClues.length+'/2':state.complete?'🏆 Nội quy xong · Gặp cô Nhi':state.started?'⭐ Nhập học: '+state.clues.length+'/2':'⭐ Gặp thầy Huy';document.getElementById('level').firstChild.textContent='Cấp '+level+' · '+xp+' XP';document.getElementById('xpbar').style.width=(xp%100)+'%';const mission=document.getElementById('missionTracker');if(mission)mission.textContent=!readStudentCode()?'👨‍🏫 NHIỆM VỤ: Gặp thầy Huy, đọc thuộc nội quy và trả bài':!greetedGuard?'🙇 NHIỆM VỤ: Đến cổng trường, cúi đầu chào thầy giám thị':!state.started?'👨‍🏫 NHIỆM VỤ: Đọc nội quy với thầy Huy':!state.complete?'👨‍🏫 NHIỆM VỤ: Hoàn thành kiểm tra nội quy':!state.anStarted?'👩‍🏫 NHIỆM VỤ: Gặp cô Nhi trước lớp':!state.anComplete?'🌸 CÔ NHI: Tìm hoa và cây tri thức ('+state.anClues.length+'/2)':!state.lessonDone?'🏫 NHIỆM VỤ: Vào lớp và chọn bàn học':state.libraryDone?'🏆 Đã hoàn thành các nhiệm vụ':'🏆 Đã hoàn thành các nhiệm vụ chính'}
 
@@ -1804,14 +1804,70 @@ function updateAmbientPupils(t,dt){
 
 /* Surprise educational quests: randomized on gameplay movement, not on a clock. */
 const surpriseQuests=[
- {emoji:'🤝',title:'Giúp bạn mới',question:'Một bạn mới đứng một mình ở sân trường. Em sẽ làm gì?',answers:['Rủ bạn cùng chơi','Giả vờ không thấy','Trêu bạn'],correct:0,moral:'Hãy thân thiện và giúp bạn hòa nhập nhé!'},
+{emoji:'🤝',title:'Giúp bạn mới',question:'Một bạn mới đứng một mình ở sân trường. Em sẽ làm gì?',answers:['Rủ bạn cùng chơi','Giả vờ không thấy','Trêu bạn'],correct:0,moral:'Hãy thân thiện và giúp bạn hòa nhập nhé!'},
  {emoji:'🗑️',title:'Sân trường sạch đẹp',question:'Em nhìn thấy vỏ bánh trên sân. Em nên làm gì?',answers:['Đá sang chỗ khác','Nhặt bỏ vào thùng rác','Để nguyên'],correct:1,moral:'Giữ gìn trường lớp sạch đẹp là trách nhiệm của mọi người.'},
  {emoji:'🙏',title:'Lời chào lễ phép',question:'Khi gặp thầy cô vào buổi sáng, em sẽ...',answers:['Chạy ngang qua','Nói chuyện thật to','Khoanh tay chào thầy cô'],correct:2,moral:'Một lời chào thể hiện sự kính trọng.'},
  {emoji:'💛',title:'Trung thực là điều tốt',question:'Em nhặt được hộp bút của bạn. Em sẽ...',answers:['Trả lại cho bạn hoặc thầy cô','Giữ làm của riêng','Giấu đi'],correct:0,moral:'Trung thực giúp mọi người tin tưởng em.'},
  {emoji:'🌱',title:'Yêu cây xanh',question:'Một bạn đang bẻ cành cây. Em sẽ...',answers:['Bẻ cùng bạn','Nhẹ nhàng nhắc bạn dừng lại','Bỏ đi'],correct:1,moral:'Cây xanh cần được chăm sóc và bảo vệ.'},
  {emoji:'📚',title:'Giữ gìn sách vở',question:'Đọc sách thư viện xong, em nên...',answers:['Vứt trên ghế','Vẽ thêm lên sách','Đặt sách về đúng chỗ'],correct:2,moral:'Giữ gìn sách để nhiều bạn cùng đọc.'},
  {emoji:'🧡',title:'Biết nói lời xin lỗi',question:'Vô tình va vào bạn, em nên...',answers:['Nói lời xin lỗi và hỏi thăm','Đổ lỗi cho bạn','Bỏ chạy'],correct:0,moral:'Dũng cảm nhận lỗi là một đức tính tốt.'},
- {emoji:'🧠',title:'An toàn trong sân trường',question:'Khi cầu thang đông học sinh, em sẽ...',answers:['Chen lên trước','Đi chậm, xếp hàng và bám tay vịn','Nhảy qua nhiều bậc'],correct:1,moral:'Đi lại cẩn thận để giữ an toàn cho mình và mọi người.'}
+ {emoji:'🧠',title:'An toàn trong sân trường',question:'Khi cầu thang đông học sinh, em sẽ...',answers:['Chen lên trước','Đi chậm, xếp hàng và bám tay vịn','Nhảy qua nhiều bậc'],correct:1,moral:'Đi lại cẩn thận để giữ an toàn cho mình và mọi người.'},
+ {"emoji":"🧹","title":"Giữ lớp sạch","question":"Thấy giấy vụn dưới bàn, em nên làm gì?","answers":["Nhặt bỏ vào thùng rác","Đá xuống gầm bàn","Giả vờ không thấy"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"💧","title":"Tiết kiệm nước","question":"Thấy vòi nước chảy sau khi rửa tay, em sẽ?","answers":["Để nước chảy","Khóa vòi nước","Mở vòi mạnh hơn"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🧼","title":"Rửa tay đúng lúc","question":"Trước khi ăn, em cần làm gì?","answers":["Chỉ lau áo","Ăn ngay","Rửa tay sạch"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🥗","title":"Ăn uống lành mạnh","question":"Khi ăn trưa, em nên?","answers":["Ăn đa dạng rau và thức ăn","Chỉ ăn kẹo","Bỏ bữa"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🛏️","title":"Ngủ đủ giấc","question":"Đến giờ đi ngủ, em nên?","answers":["Chơi điện thoại cả đêm","Đi ngủ đúng giờ","Uống nước ngọt"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🚸","title":"Qua đường an toàn","question":"Muốn qua đường, em nên?","answers":["Chạy thật nhanh","Nhắm mắt đi","Đi cùng người lớn và quan sát"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🤗","title":"Động viên bạn","question":"Bạn làm bài chưa tốt, em sẽ?","answers":["Động viên và giúp bạn","Chê cười","Bỏ mặc"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🧑‍🤝‍🧑","title":"Biết chia sẻ","question":"Có hai bạn muốn đọc một cuốn sách, em sẽ?","answers":["Giành lấy","Cùng đọc hoặc thay phiên","Giấu sách"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🧩","title":"Kiên nhẫn","question":"Gặp bài toán khó, em nên?","answers":["Xé vở","Bỏ cuộc ngay","Bình tĩnh thử lại"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🙋","title":"Xin phép phát biểu","question":"Muốn trả lời trong lớp, em sẽ?","answers":["Giơ tay xin phép","La lớn","Ngắt lời bạn"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🎒","title":"Chuẩn bị đi học","question":"Tối trước ngày học, em nên?","answers":["Để sáng mai tính","Soạn cặp theo thời khóa biểu","Không mang sách"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🌻","title":"Lời cảm ơn","question":"Bạn giúp nhặt bút, em sẽ nói?","answers":["Không cần nói gì","Trả lời cộc lốc","Cảm ơn bạn"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🐦","title":"Yêu động vật","question":"Thấy chim nhỏ trong sân, em sẽ?","answers":["Quan sát nhẹ nhàng, không làm hại","Ném đá","Đuổi bắt"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🌞","title":"Chăm vận động","question":"Giờ ra chơi, hoạt động nào tốt?","answers":["Xô đẩy bạn","Vận động an toàn","Leo chỗ nguy hiểm"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🪑","title":"Giữ ghế đá","question":"Sau khi ngồi ghế đá, em nên?","answers":["Vẽ bậy lên ghế","Đạp chân lên ghế","Giữ sạch và nhường chỗ khi cần"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🧯","title":"Khi có nguy hiểm","question":"Phát hiện khói ở trường, em sẽ?","answers":["Báo thầy cô và làm theo hướng dẫn","Trốn một mình","Đùa giỡn"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🔒","title":"Giữ thông tin riêng","question":"Người lạ hỏi địa chỉ nhà, em nên?","answers":["Nói ngay","Không chia sẻ và báo người lớn","Gửi ảnh nhà"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🗣️","title":"Lắng nghe","question":"Khi bạn đang kể chuyện, em sẽ?","answers":["Ngắt lời liên tục","Quay đi","Lắng nghe đến lượt mình"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🤲","title":"Giúp người lớn tuổi","question":"Thấy ông bà cần mang đồ nhẹ, em sẽ?","answers":["Hỏi xem có thể giúp không","Bỏ chạy","Cười đùa"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"📝","title":"Làm bài trung thực","question":"Không biết đáp án trong bài kiểm tra, em nên?","answers":["Nhìn bài bạn","Tự suy nghĩ và làm bài","Nhờ bạn làm hộ"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🎨","title":"Giữ đồ dùng chung","question":"Dùng xong bút màu của lớp, em sẽ?","answers":["Bỏ dưới đất","Mang về không hỏi","Cất đúng chỗ"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🏃","title":"Không chen lấn","question":"Khi xếp hàng ra sân, em sẽ?","answers":["Đi theo hàng","Xô bạn","Chạy vượt"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🌈","title":"Tôn trọng khác biệt","question":"Bạn thích trò chơi khác em, em nên?","answers":["Chê bai","Tôn trọng sở thích của bạn","Không chơi cùng nữa"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🫶","title":"Quan tâm bạn ốm","question":"Bạn bị mệt, em sẽ?","answers":["Rủ chạy thi","Trêu bạn","Báo thầy cô để giúp bạn"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🍌","title":"Không lãng phí thức ăn","question":"Khi lấy thức ăn, em nên?","answers":["Lấy vừa đủ","Lấy thật nhiều rồi bỏ","Đổ đi"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🔎","title":"Tìm đồ thất lạc","question":"Thấy chiếc áo khoác không có chủ, em sẽ?","answers":["Giấu đi","Gửi thầy cô hoặc nơi đồ thất lạc","Mang về"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"⏰","title":"Đúng giờ","question":"Sắp đến giờ học, em nên?","answers":["Chơi thêm thật lâu","Trốn học","Vào lớp đúng giờ"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"👟","title":"Giữ an toàn khi chơi","question":"Dây giày bị tuột, em nên?","answers":["Dừng lại buộc dây","Cứ chạy","Nhờ bạn kéo dây"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🎭","title":"Biết nhận lỗi","question":"Làm đổ nước lên bàn, em sẽ?","answers":["Đổ lỗi cho bạn","Xin lỗi và lau sạch","Bỏ đi"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"📖","title":"Đọc sách mỗi ngày","question":"Muốn học thêm điều mới, em nên?","answers":["Xé sách","Chỉ nhìn bìa","Chọn sách phù hợp để đọc"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🧘","title":"Giữ bình tĩnh","question":"Khi tức giận, em nên?","answers":["Hít thở và nói điều mình cảm thấy","Đánh bạn","Ném đồ"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🌍","title":"Bảo vệ môi trường","question":"Có thể tái sử dụng chai nước, em nên?","answers":["Vứt bừa bãi","Dùng lại khi phù hợp và sạch","Đập vỡ"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"💡","title":"Tiết kiệm điện","question":"Ra khỏi phòng không còn ai, em nên?","answers":["Bật hết đèn","Không quan tâm","Tắt đèn khi được phép"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🤝","title":"Chơi công bằng","question":"Trong trò chơi, em nên?","answers":["Tuân thủ luật chơi","Gian lận để thắng","Cãi nhau"],"correct":0,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🎯","title":"Có trách nhiệm","question":"Được giao trực nhật, em sẽ?","answers":["Nhờ bạn làm hết","Hoàn thành phần việc của mình","Trốn đi"],"correct":1,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🌷","title":"Nói lời tử tế","question":"Khi góp ý cho bạn, em nên?","answers":["Mắng bạn","Chế giễu","Nói nhẹ nhàng và tôn trọng"],"correct":2,"moral":"Hãy luôn chọn hành động tốt và có trách nhiệm nhé!","type":"quiz"},
+ {"emoji":"🌳","title":"Thăm cây xanh","question":"Hãy đi đến khu cây xanh để quan sát và bảo vệ cây.","x":-26,"z":13,"moral":"Em đã dành thời gian yêu thiên nhiên!","type":"visit"},
+ {"emoji":"⛲","title":"Quan sát đài phun nước","question":"Đi đến gần đài phun nước, đứng an toàn và ngắm cảnh.","x":-10,"z":2,"moral":"Giữ khoảng cách an toàn khi chơi gần nước nhé!","type":"visit"},
+ {"emoji":"🏫","title":"Thăm trường","question":"Đi đến sân phía trước tòa nhà chính để tìm hiểu trường học.","x":0,"z":-18,"moral":"Em đã khám phá thêm về trường của mình!","type":"visit"},
+ {"emoji":"🪑","title":"Nghỉ ngơi đúng cách","question":"Hãy đến khu ghế đá và nghỉ chân một chút.","x":13,"z":17,"moral":"Nghỉ ngơi hợp lý giúp cơ thể khỏe mạnh!","type":"visit"},
+ {"emoji":"🌼","title":"Ngắm vườn hoa","question":"Đến khu vườn hoa để ngắm, không ngắt hoa.","x":-27,"z":20,"moral":"Hãy chăm sóc và bảo vệ hoa nhé!","type":"visit"},
+ {"emoji":"🇻🇳","title":"Yêu lá cờ Việt Nam","question":"Đến gần cột cờ ở sân trường, quan sát lá cờ.","x":0,"z":3,"moral":"Hãy trân trọng lá cờ Tổ quốc!","type":"visit"},
+ {"emoji":"📚","title":"Thăm thư viện","question":"Đến lối vào khu thư viện, tìm hiểu nơi đọc sách.","x":-24,"z":-17,"moral":"Đọc sách giúp em biết thêm nhiều điều hay!","type":"visit"},
+ {"emoji":"🎨","title":"Khám phá nghệ thuật","question":"Đến gần phòng Nghệ thuật và tìm hiểu các hoạt động sáng tạo.","x":-24,"z":10,"moral":"Sáng tạo giúp em phát triển trí tưởng tượng!","type":"visit"},
+ {"emoji":"⚽","title":"Thể thao lành mạnh","question":"Đến khu Khoa học & Thể thao để tìm hiểu vận động an toàn.","x":24,"z":-17,"moral":"Vận động giúp cơ thể khỏe mạnh!","type":"visit"},
+ {"emoji":"🧑‍🤝‍🧑","title":"Chơi cùng bạn","question":"Đến khu sân chơi rộng để gặp gỡ bạn bè.","x":7,"z":14,"moral":"Chơi cùng nhau phải biết nhường nhịn!","type":"visit"},
+ {"emoji":"🤝","title":"Chào hỏi một bạn trong sân","question":"Hãy đến gần một học sinh không có bảng tên để chào hỏi một bạn trong sân.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Hỏi thăm bạn mới","question":"Hãy đến gần một học sinh không có bảng tên để hỏi thăm bạn mới.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Rủ bạn cùng vui chơi","question":"Hãy đến gần một học sinh không có bảng tên để rủ bạn cùng vui chơi.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Khen bạn cố gắng","question":"Hãy đến gần một học sinh không có bảng tên để khen bạn cố gắng.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Nói lời cảm ơn với bạn","question":"Hãy đến gần một học sinh không có bảng tên để nói lời cảm ơn với bạn.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Giúp bạn tìm lớp","question":"Hãy đến gần một học sinh không có bảng tên để giúp bạn tìm lớp.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Nhắc bạn giữ vệ sinh","question":"Hãy đến gần một học sinh không có bảng tên để nhắc bạn giữ vệ sinh.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Hỏi bạn có cần giúp không","question":"Hãy đến gần một học sinh không có bảng tên để hỏi bạn có cần giúp không.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Chia sẻ niềm vui với bạn","question":"Hãy đến gần một học sinh không có bảng tên để chia sẻ niềm vui với bạn.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"},
+ {"emoji":"🤝","title":"Động viên bạn đọc sách","question":"Hãy đến gần một học sinh không có bảng tên để động viên bạn đọc sách.","type":"npc","moral":"Giao tiếp lịch sự và quan tâm bạn bè nhé!"}
 ];
 const surpriseStyle=document.createElement('style');
 surpriseStyle.textContent=`
@@ -1827,34 +1883,60 @@ let surpriseActive=-1,surpriseTravel=0,surpriseLastX=player.position.x,surpriseL
 function surpriseRandom(max){const n=new Uint32Array(1);if(window.crypto?.getRandomValues)window.crypto.getRandomValues(n);else n[0]=Math.floor(Math.random()*4294967296);return n[0]%max}
 function surpriseOffer(){
  if(surpriseActive>=0||!welcome.hidden||floor!==-1||document.hidden)return;
- const pool=surpriseQuests.map((_,i)=>i).filter(i=>!surpriseState.done.includes(i));
+ if(surpriseState.done.length>=surpriseQuests.length){surpriseState.done=[];localStorage.setItem(surpriseKey,JSON.stringify(surpriseState))}
+ const eligible=surpriseQuests.map((q,i)=>i).filter(i=>!surpriseState.done.includes(i)&&!(surpriseState.recent||[]).includes(i));
+ const pool=eligible.length?eligible:surpriseQuests.map((q,i)=>i).filter(i=>!surpriseState.done.includes(i));
  if(!pool.length)return;
- surpriseActive=pool[surpriseRandom(pool.length)];
+ // Balance the three mission styles while avoiding recent repeats.
+ const type=['quiz','visit','npc'][surpriseRandom(3)];
+ const matching=pool.filter(i=>(surpriseQuests[i].type||'quiz')===type);
+ surpriseActive=(matching.length?matching:pool)[surpriseRandom((matching.length?matching:pool).length)];
+ const quest=surpriseQuests[surpriseActive];
+ surpriseNotice.querySelector('span').textContent=quest.emoji+' '+quest.title+' · Chủ yếu thưởng XP!';
  surpriseNotice.hidden=false;
 }
+function surpriseComplete(index){
+ const quest=surpriseQuests[index];
+ if(surpriseState.done.includes(index))return;
+ surpriseState.done.push(index);
+ surpriseState.recent=(surpriseState.recent||[]).concat(index).slice(-25);
+ const isGift=surpriseRandom(100)<5;
+ if(isGift){
+  const food=wheelPrizes.filter(p=>p.kind==='Đồ ăn'||p.kind==='Đồ uống');
+  const gift=food[surpriseRandom(food.length)];
+  wheelState.inventory.push({...gift,earnedAt:Date.now()});saveWheel();
+  dialog('🎁 Quà hiếm!',quest.moral+' Em nhận được '+gift.emoji+' '+gift.name+'!');
+ }else{
+  const amount=10+surpriseRandom(3)*5;surpriseState.xp+=amount;
+  dialog('🏆 Em làm tốt lắm!',quest.moral+' Em nhận được +'+amount+' XP!');
+ }
+ localStorage.setItem(surpriseKey,JSON.stringify(surpriseState));update();
+ surpriseActive=-1;
+}
+let surpriseTargetMode=false;
 function surpriseStart(){
  if(surpriseActive<0)return;
  const index=surpriseActive,quest=surpriseQuests[index];surpriseNotice.hidden=true;
+ if(quest.type==='visit'||quest.type==='npc'){
+  surpriseTargetMode=true;
+  dialog(quest.emoji+' '+quest.title,quest.question+'\\n\\nHãy đi đến đúng nơi hoặc gặp bạn để hoàn thành.',[['🎒 Bắt đầu',()=>{surpriseNotice.hidden=false;surpriseNotice.querySelector('strong').textContent='🎯 ĐANG LÀM NHIỆM VỤ';surpriseNotice.querySelector('span').textContent=quest.title+' · Hãy di chuyển đến mục tiêu!';surpriseNotice.querySelector('button').textContent='Xem hướng dẫn'}],['Để sau',()=>{surpriseTargetMode=false;surpriseActive=-1;surpriseNotice.hidden=true}]]);
+  return;
+ }
  function ask(){
   dialog(quest.emoji+' '+quest.title,quest.question,quest.answers.map((answer,i)=>[answer,()=>{
    if(i!==quest.correct){dialog('💡 Thử lại nhé!','Em hãy suy nghĩ thêm và chọn hành động tốt.',[['Thử lại',ask]]);return}
-   if(!surpriseState.done.includes(index)){
-    surpriseState.done.push(index);
-    const isGift=surpriseRandom(100)<35;
-    if(isGift){
-     const gift=wheelPrizes[surpriseRandom(wheelPrizes.length)];
-     wheelState.inventory.push({...gift,earnedAt:Date.now()});saveWheel();
-     dialog('🎉 Quà bất ngờ!',quest.moral+' Em nhận được '+gift.emoji+' '+gift.name+'!');
-    }else{
-     const amount=10+surpriseRandom(3)*5;surpriseState.xp+=amount;
-     dialog('🏆 Em làm tốt lắm!',quest.moral+' Em nhận được +'+amount+' XP!');
-    }
-    localStorage.setItem(surpriseKey,JSON.stringify(surpriseState));update();
-   }
-   surpriseActive=-1;
+   surpriseComplete(index);
   }]));
  }
  ask();
+}
+function checkSurpriseTarget(){
+ if(!surpriseTargetMode||surpriseActive<0||floor!==-1||!welcome.hidden)return;
+ const quest=surpriseQuests[surpriseActive];
+ let reached=false;
+ if(quest.type==='visit')reached=Math.hypot(player.position.x-quest.x,player.position.z-quest.z)<5;
+ if(quest.type==='npc')reached=ambientPupils.some(p=>Math.hypot(player.position.x-p.root.position.x,player.position.z-p.root.position.z)<3);
+ if(reached){surpriseTargetMode=false;surpriseNotice.hidden=true;surpriseNotice.querySelector('strong').textContent='🎉 NHIỆM VỤ BẤT NGỜ!';surpriseNotice.querySelector('button').textContent='🎁 Nhấn để nhận nhiệm vụ';surpriseComplete(surpriseActive)}
 }
 surpriseNotice.querySelector('button').onclick=surpriseStart;
 function updateSurpriseQuests(){
@@ -1866,7 +1948,7 @@ function updateSurpriseQuests(){
  if(surpriseTravel>=6){surpriseTravel=0;if(surpriseRandom(100)<22)surpriseOffer()}
 }
 
-const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);updateSchoolNature(clock.elapsedTime);updateAmbientPupils(clock.elapsedTime,dt);updateNpcMissionProximity();updateSurpriseQuests();bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
+const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);updateSchoolNature(clock.elapsedTime);updateAmbientPupils(clock.elapsedTime,dt);updateNpcMissionProximity();updateSurpriseQuests();checkSurpriseTarget();bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
  const manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
 // Manual movement is camera-relative: W/up always moves into the scene from the current viewpoint.
 const cameraRightX=Math.cos(orbitYaw),cameraRightZ=-Math.sin(orbitYaw);
