@@ -2301,6 +2301,8 @@ const communityPanel=document.createElement('section');communityPanel.id='commun
 communityPanel.innerHTML='<div id="communityHead"><span>💬 Chat cộng đồng</span><button id="communityClose" aria-label="Đóng chat">×</button></div><div id="communityLog" role="log" aria-live="polite"></div><form id="communityCompose"><input id="communityInput" maxlength="180" placeholder="Nhắn tin với bạn bè..." autocomplete="off" aria-label="Tin nhắn"><button id="communitySend" type="submit">Gửi</button></form><div id="communityHelp">🔒 Không chia sẻ địa chỉ, số điện thoại hoặc thông tin riêng tư.</div>';
 document.body.append(communityPanel);
 const communityLog=document.getElementById('communityLog');
+const communityConnection=document.createElement('button');communityConnection.type='button';communityConnection.style.cssText='display:block;width:100%;border:0;border-bottom:1px solid #bed6e7;background:#e9f4fc;color:#173d5e;padding:7px;font:600 12px system-ui;text-align:left;cursor:pointer';communityPanel.insertBefore(communityConnection,communityLog);communityConnection.onclick=()=>{communityConnection.textContent='🔄 Đang kết nối lại...';bumStart(false)};
+function communityConnectionStatus(){if(communityPanel.hidden)return;const connected=[...bumNet.connections.values()].filter(c=>c.open).length;communityConnection.textContent=connected?'🟢 Đã kết nối · '+(connected+1)+' người (nhấn để kết nối lại)':bumNet.host?'🟡 Đang chờ bạn vào sân trường · Nhấn để thử lại':'🔴 Chưa kết nối với bạn · Nhấn để thử lại'}setInterval(communityConnectionStatus,2000);
 function communityRender(){
  communityLog.replaceChildren();
  for(const m of communityMessages){
@@ -2345,7 +2347,7 @@ function communityReceive(id,data){
 }
 function positionCommunityPanel(){const gift=document.getElementById('levelWheelButton');if(!gift)return;const rect=gift.getBoundingClientRect();const gap=5;const right=Math.max(0,window.innerWidth-rect.left+gap);communityPanel.style.setProperty('right',right+'px','important');communityPanel.style.setProperty('left','auto','important');communityPanel.style.setProperty('width',Math.min(380,Math.max(180,window.innerWidth-right-8))+'px','important')}
 window.addEventListener('resize',()=>{if(!communityPanel.hidden)positionCommunityPanel()});
-communityToggle.onclick=()=>{communityPanel.hidden=!communityPanel.hidden;if(!communityPanel.hidden){communityUnreadCount=0;communityUpdateBadge();positionCommunityPanel();communityRender()}};
+communityToggle.onclick=()=>{communityPanel.hidden=!communityPanel.hidden;if(!communityPanel.hidden){communityUnreadCount=0;communityUpdateBadge();positionCommunityPanel();communityRender();communityConnectionStatus()}};
 document.getElementById('communityClose').onclick=()=>communityPanel.hidden=true;
 document.getElementById('communityCompose').onsubmit=e=>{
  e.preventDefault();const input=document.getElementById('communityInput'),message=input.value.trim().replace(/\s+/g,' ');if(!message)return;
