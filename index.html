@@ -1242,7 +1242,47 @@ if(state.anClues.includes(near.id)){dialog('Đã thu thập','Em đã tìm thấ
 const id=near.id;dialog(near.label,id==='flower'?'Hoa cần ánh sáng và nước để lớn lên.':'Cây xanh cho chúng ta bóng mát và không khí trong lành.',[['Ghi vào sổ khám phá',()=>{state.anClues.push(id);state.anComplete=state.anClues.length===2;save();if(state.anComplete)dialog('🎉 Xuất sắc!','Em nhận thêm 40 XP. Tổng cộng 100 XP và lên cấp 2!')}] ]);return}
 if(near.id==='rulesNotice'){dialog('📜 Nội quy nhà trường',schoolRules,[['👨‍🏫 Gặp thầy Huy',startEnrollment]]);return}if(near.id==='milo'){startEnrollment();return}if(!state.started){dialog('Chưa có nhiệm vụ','Em cần gặp thầy Huy để nhận nhiệm vụ trước.');return}if(state.clues.includes(near.id)){dialog('Đã tìm thấy','Em đã thu thập manh mối này rồi.');return}const id=near.id;dialog(near.label,id==='book'?'Manh mối: Đọc sách giúp chúng ta khám phá thế giới.':'Manh mối: Học cùng bạn bè rất vui.',[['Thu thập',()=>{state.clues.push(id);state.complete=state.clues.length===2;save();if(state.complete)dialog('🎉 Chúc mừng!','Em đã hoàn thành nhiệm vụ đầu tiên và nhận 60 XP (bản thử nghiệm).')} ]])}
 document.getElementById('action').onclick=interact;const keys=new Set();addEventListener('keydown',e=>{keys.add(e.key.toLowerCase());if(e.key===' '){e.preventDefault();interact()}});addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-const pad=document.getElementById('pad'),stick=document.getElementById('stick'),joy={x:0,y:0};function pointer(e){const r=pad.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,scale=Math.min(1,45/Math.max(1,Math.hypot(x,y)));joy.x=x*scale/45;joy.y=y*scale/45;stick.style.transform='translate('+joy.x*45+'px,'+joy.y*45+'px)'}pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);pointer(e)};pad.onpointermove=e=>{if(pad.hasPointerCapture(e.pointerId))pointer(e)};function reset(){joy.x=joy.y=0;stick.style.transform=''}pad.onpointerup=reset;pad.onpointercancel=reset;pad.onlostpointercapture=reset;addEventListener('blur',()=>{keys.clear();reset()});
+const pad=document.getElementById('pad'),stick=document.getElementById('stick'),joy={x:0,y:0};
+pad.style.display='none'; // Voice button replaces the mobile joystick.
+const voiceButton=document.createElement('button');
+voiceButton.id='bumVietnameseVoice';
+voiceButton.type='button';
+voiceButton.textContent='🎤 Giọng Việt';
+voiceButton.setAttribute('aria-label','Nhấn để nói lệnh tiếng Việt');
+voiceButton.style.cssText='position:fixed;left:22px;bottom:25px;z-index:10035;width:132px;min-height:66px;padding:10px;border-radius:22px;border:3px solid #d9f6ff;background:#18577f;color:white;font:800 16px system-ui;box-shadow:0 6px 18px #0005;touch-action:manipulation;cursor:pointer';
+document.body.append(voiceButton);
+const VoiceRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+let voiceRecognition=null,voiceMoving=null,voiceMoveUntil=0;
+function voiceStopMovement(){voiceMoving=null;voiceMoveUntil=0;joy.x=joy.y=0}
+function voiceHandle(raw){
+ const cmd=String(raw||'').toLocaleLowerCase('vi-VN').normalize('NFC').trim();
+ const tip=document.getElementById('tip');tip.hidden=false;tip.textContent='🎤 '+cmd;
+ if(/dừng|đứng lại|ngừng/.test(cmd)){voiceStopMovement();return}
+ if(/chào|xin chào/.test(cmd)){startStudentAction('teacher');return}
+ if(/nhảy lò cò/.test(cmd)){startStudentAction('hop');return}
+ if(/nhảy|ăn mừng/.test(cmd)){startStudentAction('siu');return}
+ if(/hát/.test(cmd)){startStudentAction('sing');return}
+ if(/tương tác|nói chuyện/.test(cmd)){interact();return}
+ if(/đi|chạy|tiến|lùi|trái|phải/.test(cmd)){
+  voiceMoving=/trái/.test(cmd)?'left':/phải/.test(cmd)?'right':/lùi|phía sau/.test(cmd)?'back':'forward';
+  voiceMoveUntil=performance.now()+2500;
+  tip.textContent='🎤 '+cmd+' (di chuyển 2,5 giây)';
+  return;
+ }
+ tip.textContent='🎤 Chưa hiểu lệnh: '+cmd;
+}
+voiceButton.onclick=()=>{
+ if(!VoiceRecognition){document.getElementById('tip').hidden=false;document.getElementById('tip').textContent='Trình duyệt này chưa hỗ trợ nhận diện giọng nói. Hãy thử Chrome.';return}
+ if(voiceRecognition){voiceRecognition.stop();return}
+ const recognition=new VoiceRecognition();voiceRecognition=recognition;
+ recognition.lang='vi-VN';recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false;
+ voiceButton.textContent='🔴 Đang nghe...';
+ recognition.onresult=e=>{if(e.results?.[0]?.[0])voiceHandle(e.results[0][0].transcript)};
+ recognition.onerror=e=>{document.getElementById('tip').hidden=false;document.getElementById('tip').textContent='⚠️ Micro: '+e.error};
+ recognition.onend=()=>{if(voiceRecognition===recognition){voiceRecognition=null;voiceButton.textContent='🎤 Giọng Việt'}};
+ try{recognition.start()}catch(e){voiceRecognition=null;voiceButton.textContent='🎤 Giọng Việt'}
+};
+function pointer(e){const r=pad.getBoundingClientRect(),x=e.clientX-r.left-r.width/2,y=e.clientY-r.top-r.height/2,scale=Math.min(1,45/Math.max(1,Math.hypot(x,y)));joy.x=x*scale/45;joy.y=y*scale/45;stick.style.transform='translate('+joy.x*45+'px,'+joy.y*45+'px)'}pad.onpointerdown=e=>{pad.setPointerCapture(e.pointerId);pointer(e)};pad.onpointermove=e=>{if(pad.hasPointerCapture(e.pointerId))pointer(e)};function reset(){joy.x=joy.y=0;stick.style.transform=''}pad.onpointerup=reset;pad.onpointercancel=reset;pad.onlostpointercapture=reset;addEventListener('blur',()=>{keys.clear();reset()});
 function blocked(x,z){if(floor===5)return x<305||x>335||z< -15||z>15;if(floor===4)return x<253||x>287||z< -16.5||z>16.5;if(floor===3)return x<205||x>235||z< -15||z>15;if(floor===2)return x<155||x>185||z< -17||z>17;if(floor===0)return x<92.5||x>147.5||z< -10.7||z>13.8;if(floor>=0)return x<96||x>144||z< -14||z>14;return Math.abs(x)>79||z< -39||z>47||Math.hypot(x+19,z+3)<3||Math.hypot(x-19,z+3)<3||Math.hypot(x,z-13)<1.7||walls.some(b=>Math.abs(x-b.x)<b.w/2+.65&&Math.abs(z-b.z)<b.d/2+.65)}
 let orbitYaw=0,orbitPitch=.48,orbitDistance=19,topView=false,lectureStageView=false;
 const minPitch=.12,maxPitch=1.45;
@@ -1408,7 +1448,8 @@ function installStudentActions(){
  button.onclick=()=>{menu.hidden=!menu.hidden;menu.style.display=menu.hidden?'none':'flex'};menu.style.display='none';document.body.append(button,menu);
 }
 installStudentActions();
-const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);bumNetFrame(dt);const manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
+const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
+ const manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
 // Manual movement is camera-relative: W/up always moves into the scene from the current viewpoint.
 const cameraRightX=Math.cos(orbitYaw),cameraRightZ=-Math.sin(orbitYaw);
 const cameraForwardX=-Math.sin(orbitYaw),cameraForwardZ=-Math.cos(orbitYaw);
