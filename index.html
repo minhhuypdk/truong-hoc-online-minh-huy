@@ -1881,40 +1881,52 @@ surpriseNotice.innerHTML='<strong>🎉 NHIỆM VỤ BẤT NGỜ!</strong><span>�
 document.body.append(surpriseNotice);
 let surpriseActive=-1,surpriseTravel=0,surpriseLastX=player.position.x,surpriseLastZ=player.position.z;
 function surpriseRandom(max){const n=new Uint32Array(1);if(window.crypto?.getRandomValues)window.crypto.getRandomValues(n);else n[0]=Math.floor(Math.random()*4294967296);return n[0]%max}
-function surpriseOffer(){
- if(surpriseActive>=0||!welcome.hidden||floor!==-1||document.hidden)return;
- if(surpriseState.done.length>=surpriseQuests.length){surpriseState.done=[];localStorage.setItem(surpriseKey,JSON.stringify(surpriseState))}
- const eligible=surpriseQuests.map((q,i)=>i).filter(i=>!surpriseState.done.includes(i)&&!(surpriseState.recent||[]).includes(i));
- const pool=eligible.length?eligible:surpriseQuests.map((q,i)=>i).filter(i=>!surpriseState.done.includes(i));
- if(!pool.length)return;
- // Balance the three mission styles while avoiding recent repeats.
- const type=['quiz','visit','npc'][surpriseRandom(3)];
- const matching=pool.filter(i=>(surpriseQuests[i].type||'quiz')===type);
- surpriseActive=(matching.length?matching:pool)[surpriseRandom((matching.length?matching:pool).length)];
- const quest=surpriseQuests[surpriseActive];
- surpriseNotice.querySelector('span').textContent=quest.emoji+' '+quest.title+' · Chủ yếu thưởng XP!';
- surpriseNotice.hidden=false;
-}
-function surpriseComplete(index){
- const quest=surpriseQuests[index];
- if(surpriseState.done.includes(index))return;
- surpriseState.done.push(index);
- surpriseState.recent=(surpriseState.recent||[]).concat(index).slice(-25);
- const isGift=surpriseRandom(100)<5;
- if(isGift){
-  const food=wheelPrizes.filter(p=>p.kind==='Đồ ăn'||p.kind==='Đồ uống');
-  const gift=food[surpriseRandom(food.length)];
-  wheelState.inventory.push({...gift,earnedAt:Date.now()});saveWheel();
-  dialog('🎁 Quà hiếm!',quest.moral+' Em nhận được '+gift.emoji+' '+gift.name+'!');
- }else{
-  const amount=10+surpriseRandom(3)*5;surpriseState.xp+=amount;
-  dialog('🏆 Em làm tốt lắm!',quest.moral+' Em nhận được +'+amount+' XP!');
+// One shared mission is issued and awarded by the elected WebRTC room host.
+let sharedMission=null,sharedMissionSeq=0,sharedMissionClaimed=false;
+function sharedMissionSend(message){if(!bumNet.peer)return;if(bumNet.host)bumBroadcast(message);else for(const conn of bumNet.connections.values())bumSend(conn,message)}
+function sharedMissionDisplay(){
+ const visible=!!sharedMission&&!sharedMissionClaimed&&welcome.hidden&&floor===-1;
+ surpriseNotice.hidden=!visible;
+ if(visible){
+  surpriseNotice.querySelector('strong').textContent='🎉 NHIỆM VỤ CHUNG!';
+  surpriseNotice.querySelector('span').textContent=surpriseQuests[sharedMission.index].emoji+' '+surpriseQuests[sharedMission.index].title+' · Ai nhận trước được làm!';
+  surpriseNotice.querySelector('button').textContent='⚡ NHẬN NHIỆM VỤ';
  }
- localStorage.setItem(surpriseKey,JSON.stringify(surpriseState));update();
- surpriseActive=-1;
 }
-let surpriseTargetMode=false;
-function surpriseStart(){
+function sharedMissionHandle(id,data){
+ if(data.t==='mission-sync'&&!bumNet.host){
+  if(data.mission&&Number.isInteger(data.mission.index)&&data.mission.index>=0&&data.mission.index<surpriseQuests.length)sharedMission={id:String(data.mission.id),index:data.mission.index};
+  else sharedMission=null;
+  sharedMissionClaimed=!!data.claimed;sharedMissionDisplay();return true;
+ }
+ if(data.t==='mission-claim'&&bumNet.host){
+  if(!sharedMission||sharedMissionClaimed||data.id!==sharedMission.id)return true;
+  const claimant=id==='local'?'local':id;
+  sharedMissionClaimed=true;
+  bumBroadcast({t:'mission-sync',mission:sharedMission,claimed:true});
+  if(claimant==='local')sharedMissionWon(sharedMission);
+  else bumSend(bumNet.connections.get(claimant),{t:'mission-won',mission:sharedMission});
+  return true;
+ }
+ if(data.t==='mission-won'&&!bumNet.host&&data.mission?.id===sharedMission?.id){sharedMissionWon(sharedMission);return true}
+ return data.t==='mission-sync'||data.t==='mission-claim'||data.t==='mission-won';
+}
+function sharedMissionWon(mission){
+ if(!mission)return;
+ surpriseActive=mission.index;surpriseNotice.hidden=true;
+ surpriseTargetMode=false;
+ surpriseStart(true);
+}
+function surpriseOffer(){
+ if(!bumNet.peer||!bumNet.host||sharedMission||!welcome.hidden||floor!==-1||document.hidden)return;
+ const pool=surpriseQuests.map((q,i)=>i).filter(i=>!(surpriseState.recent||[]).includes(i));
+ const index=(pool.length?pool:surpriseQuests.map((q,i)=>i))[surpriseRandom(pool.length||surpriseQuests.length)];
+ sharedMission={id:String(++sharedMissionSeq)+'-'+String(Date.now()),index};sharedMissionClaimed=false;
+ sharedMissionSend({t:'mission-sync',mission:sharedMission,claimed:false});
+ sharedMissionDisplay();
+}
+function surpriseStart(authorized=false){
+ if(!authorized){if(!sharedMission||sharedMissionClaimed)return;sharedMissionSend({t:'mission-claim',id:sharedMission.id});if(bumNet.host)sharedMissionHandle('local',{t:'mission-claim',id:sharedMission.id});return}
  if(surpriseActive<0)return;
  const index=surpriseActive,quest=surpriseQuests[index];surpriseNotice.hidden=true;
  if(quest.type==='visit'||quest.type==='npc'){
@@ -1938,11 +1950,12 @@ function checkSurpriseTarget(){
  if(quest.type==='npc')reached=ambientPupils.some(p=>Math.hypot(player.position.x-p.root.position.x,player.position.z-p.root.position.z)<3);
  if(reached){surpriseTargetMode=false;surpriseNotice.hidden=true;surpriseNotice.querySelector('strong').textContent='🎉 NHIỆM VỤ BẤT NGỜ!';surpriseNotice.querySelector('button').textContent='🎁 Nhấn để nhận nhiệm vụ';surpriseComplete(surpriseActive)}
 }
-surpriseNotice.querySelector('button').onclick=surpriseStart;
+surpriseNotice.querySelector('button').onclick=()=>surpriseStart(false);
 function updateSurpriseQuests(){
  const x=player.position.x,z=player.position.z,dist=Math.hypot(x-surpriseLastX,z-surpriseLastZ);
  surpriseLastX=x;surpriseLastZ=z;
  if(!welcome.hidden||floor!==-1||document.hidden)return;
+ sharedMissionDisplay();
  if(dist>.01&&dist<2)surpriseTravel+=dist;
  // Random gameplay-distance opportunities; no predictable timed schedule.
  if(surpriseTravel>=6){surpriseTravel=0;if(surpriseRandom(100)<22)surpriseOffer()}
@@ -2097,6 +2110,7 @@ function bumRemote(id){let entry=bumNet.remotes.get(id);if(entry)return entry;
 function bumDropRemote(id){const e=bumNet.remotes.get(id);if(!e)return;scene.remove(e.root);e.texture.dispose();e.root.traverse(o=>{if(o.isSprite)o.material.dispose()});bumNet.remotes.delete(id)}
 function bumReceive(id,data){
  if(!data||typeof data!=='object')return;
+ if(sharedMissionHandle(id,data))return;
  if(data.t==='state'){
   if(!Number.isFinite(data.x)||!Number.isFinite(data.z)||!Number.isFinite(data.r)||!Number.isInteger(data.f)||Math.abs(data.x)>400||Math.abs(data.z)>400)return;
   const e=bumRemote(id);
@@ -2143,6 +2157,7 @@ function bumAttach(conn){
  conn.on('open',()=>{
   bumStatus('🟢 Sân trường chung: '+(bumNet.connections.size+1)+' người đang kết nối');
   bumSend(conn,bumPacket());
+  if(bumNet.host)bumSend(conn,{t:'mission-sync',mission:sharedMission,claimed:sharedMissionClaimed});
   if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,look:e.lookKey?JSON.parse(e.lookKey):undefined,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a});
  });
  conn.on('data',data=>bumReceive(conn.peer,data));
@@ -2150,6 +2165,7 @@ function bumAttach(conn){
  conn.on('error',()=>bumStatus('⚠️ Kết nối với bạn bị lỗi'));
 }
 function bumLeave(){
+ sharedMission=null;sharedMissionClaimed=false;surpriseNotice.hidden=true;
  bumNet.leaving=true;
  for(const conn of bumNet.connections.values())try{conn.close()}catch{}
  bumNet.connections.clear();for(const id of [...bumNet.remotes.keys()])bumDropRemote(id);
@@ -2177,7 +2193,7 @@ async function bumStart(host=false){
   peer.on('disconnected',()=>{if(bumNet.peer===peer){bumStatus('🔄 Đang khôi phục kết nối...');try{peer.reconnect()}catch{}}});
   peer.on('open',()=>{
    if(bumNet.peer!==peer)return;
-   if(host){bumStatus('🟢 Đã vào sân trường chung (máy đang giữ phòng)');}
+   if(host){bumStatus('🟢 Đã vào sân trường chung (máy đang giữ phòng)');sharedMission=null;sharedMissionClaimed=false;}
    else{
     const conn=peer.connect(bumRoomId(BUM_SHARED_ROOM),{reliable:true});bumAttach(conn);
     setTimeout(()=>{if(bumNet.peer===peer&&!conn.open&&!document.hidden)bumStart(true)},5500);
