@@ -726,9 +726,22 @@ resetStudentButton.textContent='↻ Reset nhân vật';
 resetStudentButton.setAttribute('aria-label','Reset nhân vật và trở về trang chào mừng');
 resetStudentButton.style.cssText='position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 400px);z-index:12;padding:11px 13px;border-radius:15px;background:#fffaf0;color:#21466c;border:2px solid #7fc7e9;font-weight:800;font-size:13px;box-shadow:0 4px 12px #0002;cursor:pointer';
 document.body.append(resetStudentButton);
+resetStudentButton.textContent='↻ Chơi lại từ đầu';
+resetStudentButton.setAttribute('aria-label','Xóa toàn bộ tiến trình và chơi lại từ đầu');
 resetStudentButton.onclick=()=>{
- if(!confirm('Reset nhân vật và quay về trang Chào mừng Trường Học Bé Bum? Ngoại hình và tên nhân vật hiện tại sẽ bị xóa. XP và tiến trình nhiệm vụ vẫn được giữ.'))return;
- try{localStorage.removeItem(appearanceKey);localStorage.removeItem(locationSaveKey)}catch{}
+ if(!confirm('CHƠI LẠI TỪ ĐẦU?\\n\\nTất cả XP, cấp độ, nhiệm vụ, lượt quay, túi quà, vật phẩm, thành tích, tên và ngoại hình nhân vật trên thiết bị này sẽ bị xóa.\\n\\nSau khi xóa sẽ trở về Cấp 1 – 0 XP. Không thể hoàn tác.\\n\\nBạn có chắc chắn muốn xóa toàn bộ tiến trình?'))return;
+ try{
+  // Reset only school-game data; preserve unrelated website/browser settings.
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+   const key=localStorage.key(i);
+   if(key&&(/^(be-bum-|minh-huy-school-)/.test(key)||key===appearanceKey||key===locationSaveKey))keys.push(key);
+  }
+  keys.forEach(key=>localStorage.removeItem(key));
+  // Prevent a pending pagehide/location autosave from recreating old progress.
+  window.removeEventListener('pagehide',savePlayerLocation);
+  window.removeEventListener('beforeunload',savePlayerLocation);
+ }catch(err){alert('Không thể xóa dữ liệu trò chơi trên thiết bị này. Vui lòng kiểm tra quyền lưu trữ của trình duyệt.');return}
  window.location.reload();
 };
 const welcome=document.getElementById('welcome');const hasAvatar=()=>{try{return localStorage.getItem(appearanceKey)!==null}catch{return false}};welcome.hidden=hasAvatar();document.getElementById('startCreate').onclick=()=>{startMusic();openCreator()};document.getElementById('customizeBtn').onclick=openCreator;document.getElementById('closeAvatar').onclick=()=>{document.getElementById('creator').hidden=true;if(!hasAvatar())welcome.hidden=false};
