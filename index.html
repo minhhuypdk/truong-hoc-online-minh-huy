@@ -737,7 +737,62 @@ let state={started:false,clues:[],complete:false,anStarted:false,anClues:[],anCo
 function save(){localStorage.setItem('minh-huy-school-alpha',JSON.stringify(state));update()}const npcMissionKey='be-bum-npc-missions-v1';
 function npcMissionProgress(){try{return JSON.parse(localStorage.getItem(npcMissionKey)||'{}')||{}}catch{return {}}}
 function npcMissionBonus(){return Object.values(npcMissionProgress()).reduce((n,v)=>n+(Number(v)||0),0)}
-function earnedXP(){return (state.complete?60:0)+(state.anComplete?40:0)+(state.quizDone?30:0)+(state.lessonDone?50:0)+(state.libraryDone?40:0)+(typeof basketAwarded==='number'?basketAwarded:0)+npcMissionBonus()}const xpSpentKey='be-bum-xp-spent-v1';function spentXP(){return Math.max(0,Number(localStorage.getItem(xpSpentKey))||0)}function availableXP(){return Math.max(0,earnedXP()-spentXP())}function spendXP(cost){if(availableXP()<cost)return false;localStorage.setItem(xpSpentKey,String(spentXP()+cost));update();return true}function update(){const xp=availableXP(),level=1+Math.floor(earnedXP()/100);document.getElementById('progress').textContent=state.libraryDone&&state.lessonDone?'🏆 Alpha 0.4 hoàn thành':state.quizDone?'📚 Khám phá lớp học':state.anComplete?'🏫 Vào tòa nhà học':state.anStarted?'📗 Cô Nhi: '+state.anClues.length+'/2':state.complete?'🏆 Nội quy xong · Gặp cô Nhi':state.started?'⭐ Nhập học: '+state.clues.length+'/2':'⭐ Gặp thầy Huy';document.getElementById('level').firstChild.textContent='Cấp '+level+' · '+xp+' XP';document.getElementById('xpbar').style.width=(xp%100)+'%';const mission=document.getElementById('missionTracker');if(mission)mission.textContent=!readStudentCode()?'👨‍🏫 NHIỆM VỤ: Gặp thầy Huy, đọc thuộc nội quy và trả bài':!greetedGuard?'🙇 NHIỆM VỤ: Đến cổng trường, cúi đầu chào thầy giám thị':!state.started?'👨‍🏫 NHIỆM VỤ: Đọc nội quy với thầy Huy':!state.complete?'👨‍🏫 NHIỆM VỤ: Hoàn thành kiểm tra nội quy':!state.anStarted?'👩‍🏫 NHIỆM VỤ: Gặp cô Nhi trước lớp':!state.anComplete?'🌸 CÔ NHI: Tìm hoa và cây tri thức ('+state.anClues.length+'/2)':!state.lessonDone?'🏫 NHIỆM VỤ: Vào lớp và chọn bàn học':state.libraryDone?'🏆 Đã hoàn thành các nhiệm vụ':'🏆 Đã hoàn thành các nhiệm vụ chính'}
+function earnedXP(){return (state.complete?60:0)+(state.anComplete?40:0)+(state.quizDone?30:0)+(state.lessonDone?50:0)+(state.libraryDone?40:0)+(typeof basketAwarded==='number'?basketAwarded:0)+npcMissionBonus()}const xpSpentKey='be-bum-xp-spent-v1';function spentXP(){return Math.max(0,Number(localStorage.getItem(xpSpentKey))||0)}function availableXP(){return Math.max(0,earnedXP()-spentXP())}function spendXP(cost){if(availableXP()<cost)return false;localStorage.setItem(xpSpentKey,String(spentXP()+cost));update();return true}function update(){const xp=availableXP(),level=1+Math.floor(earnedXP()/100);checkLevelWheel();document.getElementById('progress').textContent=state.libraryDone&&state.lessonDone?'🏆 Alpha 0.4 hoàn thành':state.quizDone?'📚 Khám phá lớp học':state.anComplete?'🏫 Vào tòa nhà học':state.anStarted?'📗 Cô Nhi: '+state.anClues.length+'/2':state.complete?'🏆 Nội quy xong · Gặp cô Nhi':state.started?'⭐ Nhập học: '+state.clues.length+'/2':'⭐ Gặp thầy Huy';document.getElementById('level').firstChild.textContent='Cấp '+level+' · '+xp+' XP';document.getElementById('xpbar').style.width=(xp%100)+'%';const mission=document.getElementById('missionTracker');if(mission)mission.textContent=!readStudentCode()?'👨‍🏫 NHIỆM VỤ: Gặp thầy Huy, đọc thuộc nội quy và trả bài':!greetedGuard?'🙇 NHIỆM VỤ: Đến cổng trường, cúi đầu chào thầy giám thị':!state.started?'👨‍🏫 NHIỆM VỤ: Đọc nội quy với thầy Huy':!state.complete?'👨‍🏫 NHIỆM VỤ: Hoàn thành kiểm tra nội quy':!state.anStarted?'👩‍🏫 NHIỆM VỤ: Gặp cô Nhi trước lớp':!state.anComplete?'🌸 CÔ NHI: Tìm hoa và cây tri thức ('+state.anClues.length+'/2)':!state.lessonDone?'🏫 NHIỆM VỤ: Vào lớp và chọn bàn học':state.libraryDone?'🏆 Đã hoàn thành các nhiệm vụ':'🏆 Đã hoàn thành các nhiệm vụ chính'}
+
+/* Level-up prize wheel: one earned spin for each new level. */
+const wheelKey='be-bum-level-wheel-v1';
+const wheelPrizes=[
+ {emoji:'🍎',name:'Táo đỏ',kind:'Đồ ăn'},
+ {emoji:'🧃',name:'Nước trái cây',kind:'Đồ uống'},
+ {emoji:'🍰',name:'Bánh kem nhỏ',kind:'Đồ ăn'},
+ {emoji:'🥛',name:'Sữa tươi',kind:'Đồ uống'},
+ {emoji:'🧢',name:'Mũ xanh may mắn',kind:'Phụ kiện'},
+ {emoji:'🎒',name:'Ba lô cầu vồng',kind:'Phụ kiện'},
+ {emoji:'👕',name:'Áo ngôi sao',kind:'Trang phục'},
+ {emoji:'👟',name:'Giày thể thao',kind:'Trang phục'}
+];
+function readWheel(){try{const v=JSON.parse(localStorage.getItem(wheelKey)||'null');if(v&&Number.isFinite(v.highestLevel))return {highestLevel:Math.max(1,v.highestLevel),pending:Math.max(0,v.pending||0),inventory:Array.isArray(v.inventory)?v.inventory:[]}}catch{}return {highestLevel:1,pending:0,inventory:[]}}
+let wheelState=readWheel(),wheelBusy=false;
+function saveWheel(){try{localStorage.setItem(wheelKey,JSON.stringify(wheelState))}catch{}}
+function checkLevelWheel(){
+ const level=1+Math.floor(earnedXP()/100);
+ if(level>wheelState.highestLevel){
+  wheelState.pending+=level-wheelState.highestLevel;
+  wheelState.highestLevel=level;saveWheel();renderWheelButton();
+ }
+}
+const wheelStyle=document.createElement('style');
+wheelStyle.textContent='#levelWheelButton{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:30;background:#ffca64;color:#163b5e;border:3px solid white;border-radius:18px;padding:10px 14px;font-weight:900;box-shadow:0 5px 15px #0003;cursor:pointer}#wheelOverlay{position:fixed;inset:0;z-index:120;background:#071f3ac9;display:flex;align-items:center;justify-content:center;padding:15px}#wheelOverlay[hidden]{display:none}#wheelCard{width:min(420px,96vw);max-height:90dvh;overflow:auto;background:#fffaf0;border:4px solid white;border-radius:24px;padding:17px;text-align:center;color:#173d5e;box-shadow:0 16px 50px #0006}#wheelDisc{width:min(275px,75vw);aspect-ratio:1;margin:14px auto;border-radius:50%;border:9px solid #ffd46c;background:conic-gradient(#f5a6b9 0 45deg,#9ed4ff 45deg 90deg,#ffe49b 90deg 135deg,#b8e8bc 135deg 180deg,#d7b6f7 180deg 225deg,#ffc69d 225deg 270deg,#a3e8e5 270deg 315deg,#f6c5e7 315deg 360deg);display:grid;place-items:center;transition:transform 3.4s cubic-bezier(.15,.78,.12,1);box-shadow:0 6px 20px #0003}#wheelDisc span{font-size:54px;background:#ffffffd9;border-radius:50%;width:90px;height:90px;display:grid;place-items:center}#wheelCard button{border:0;border-radius:13px;background:#ffca64;color:#163b5e;font-size:16px;font-weight:850;padding:12px 18px;margin:5px;cursor:pointer}';
+document.head.append(wheelStyle);
+const wheelButton=document.createElement('button');wheelButton.id='levelWheelButton';document.body.append(wheelButton);
+const wheelOverlay=document.createElement('div');wheelOverlay.id='wheelOverlay';wheelOverlay.hidden=true;
+wheelOverlay.innerHTML='<div id="wheelCard"><h2>🎡 Vòng Quay May Mắn</h2><p id="wheelCount"></p><div id="wheelDisc"><span>🎁</span></div><p id="wheelResult">Mỗi cấp mới nhận một lượt quay!</p><button id="wheelSpin">🎡 QUAY NHẬN QUÀ</button><button id="wheelClose">Đóng</button><h3>🎒 Túi quà</h3><div id="wheelInventory"></div></div>';
+document.body.append(wheelOverlay);
+let wheelRotation=0;
+function renderWheelButton(){wheelButton.textContent='🎁 Quà lên cấp'+(wheelState.pending?' ('+wheelState.pending+')':'');wheelButton.style.display=welcome.hidden?'block':'none'}
+function renderWheel(){
+ document.getElementById('wheelCount').textContent='Lượt quay còn lại: '+wheelState.pending;
+ document.getElementById('wheelSpin').disabled=wheelBusy||wheelState.pending<1;
+ document.getElementById('wheelInventory').textContent=wheelState.inventory.length?wheelState.inventory.slice(-15).reverse().map(p=>p.emoji+' '+p.name).join(' · '):'Chưa có quà nào';
+ renderWheelButton();
+}
+wheelButton.onclick=()=>{wheelOverlay.hidden=false;renderWheel()};
+document.getElementById('wheelClose').onclick=()=>{if(!wheelBusy)wheelOverlay.hidden=true};
+document.getElementById('wheelSpin').onclick=()=>{
+ if(wheelBusy||wheelState.pending<1)return;
+ wheelBusy=true;renderWheel();
+ const array=new Uint32Array(1);if(window.crypto?.getRandomValues)crypto.getRandomValues(array);else array[0]=Math.floor(Math.random()*4294967296);
+ const index=array[0]%wheelPrizes.length,prize=wheelPrizes[index];
+ const target=360*5+(360-(index*45+22.5));wheelRotation+=target-(wheelRotation%360);
+ document.getElementById('wheelDisc').style.transform='rotate('+wheelRotation+'deg)';
+ document.getElementById('wheelResult').textContent='✨ Vòng quay đang quay...';
+ setTimeout(()=>{
+  wheelState.pending--;wheelState.inventory.push({...prize,earnedAt:Date.now()});saveWheel();
+  wheelBusy=false;document.getElementById('wheelResult').textContent='🎉 Chúc mừng! Nhận được '+prize.emoji+' '+prize.name+' ('+prize.kind+')';
+  renderWheel();
+ },3550);
+};
+renderWheelButton();
 const souvenirSkins=[{id:'blue',name:'Đồng phục xanh cao cấp',cost:80,topColor:'#a9dcff',bottomColor:'#233e76',pattern:'solid',top:'shirt'},{id:'orange',name:'Trang phục lễ hội sắc cam',cost:120,topColor:'#f5a64e',bottomColor:'#5d3b84',pattern:'solid',top:'shirt'},{id:'star',name:'Bộ phong cách ngôi sao',cost:180,topColor:'#f3d87c',bottomColor:'#294a8b',pattern:'solid',top:'shirt'}];
 const wardrobeKey='be-bum-owned-skins-v1';
 function ownedSkins(){try{const v=JSON.parse(localStorage.getItem(wardrobeKey)||'{}');return Array.isArray(v[appearance.name])?v[appearance.name]:[]}catch{return []}}
