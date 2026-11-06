@@ -446,7 +446,7 @@ function openGameVoiceSettings(){
  let panel=document.getElementById('gameVoicePanel');
  if(panel){panel.remove();return}
  panel=document.createElement('div');panel.id='gameVoicePanel';
- panel.style.cssText='position:fixed;right:12px;bottom:66px;z-index:10050;width:min(350px,calc(100vw - 24px));max-height:65vh;overflow-y:auto;box-sizing:border-box;padding:14px;border-radius:14px;background:#173c46;color:white;box-shadow:0 8px 30px #0007;font:14px system-ui';
+ panel.style.cssText='position:fixed;left:50%;right:auto;transform:translateX(-50%);bottom:66px;z-index:10050;width:min(350px,calc(100vw - 24px));max-height:65vh;overflow-y:auto;box-sizing:border-box;padding:14px;border-radius:14px;background:#173c46;color:white;box-shadow:0 8px 30px #0007;font:14px system-ui';
  const heading=document.createElement('strong');heading.textContent='🔊 Giọng đọc tiếng Việt';panel.append(heading);
  const note=document.createElement('p');note.style.cssText='font-size:13px;line-height:1.5;margin:12px 0';panel.append(note);
  const select=document.createElement('select');select.style.cssText='width:100%;box-sizing:border-box;padding:9px;border-radius:8px;margin-bottom:10px';panel.append(select);
@@ -477,7 +477,7 @@ function installGameVoiceSettings(){
  if(document.getElementById('gameVoiceButton'))return;
  const btn=document.createElement('button');btn.id='gameVoiceButton';btn.textContent='🔊 Giọng Việt';
  btn.title='Chọn giọng đọc tiếng Việt cho toàn bộ trò chơi';
- btn.style.cssText='position:fixed;right:12px;bottom:12px;z-index:10040;padding:9px 12px;border:1px solid #b3dfc4;border-radius:18px;background:#174c45;color:white;font:600 13px system-ui;cursor:pointer';
+ btn.style.cssText='position:fixed;left:50%;right:auto;transform:translateX(-50%);bottom:12px;z-index:10040;padding:9px 12px;border:1px solid #b3dfc4;border-radius:18px;background:#174c45;color:white;font:600 13px system-ui;cursor:pointer';
  btn.onclick=openGameVoiceSettings;document.body.append(btn);
 }
 installGameVoiceSettings();
@@ -939,7 +939,7 @@ roomBox(1.9,.13,1.25,7.3,1.82,-9.6,'#d6b38c');
 roomBox(13.8,3.1,.16,0,3.1,-11.45,'#233b54');
 roomBox(14.3,.13,.25,0,4.75,-11.42,'#d2b47d');
 roomBox(14.3,.13,.25,0,1.48,-11.42,'#d2b47d');
-for(const x of [-23,-11,0,11,23]){roomBox(3.4,.11,1.05,x,4.78,-2,'#d9e0df');roomBox(3.4,.11,1.05,x,4.78,6,'#d9e0df')}
+// Removed the last ten suspended white ceiling tiles at z=-2 and z=6 (y=4.78).
 // Removed floating side-wall window panels and their white top edges.
 
 // Detailed 3D furnishing: shallow wall cabinets, bookcase cubbies, teacher storage and window ledges.
