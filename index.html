@@ -331,9 +331,27 @@ part(saoDo,new THREE.BoxGeometry(.23,.56,.06),'#e0444e',0,1.47,.36);
 part(saoDo,new THREE.BoxGeometry(.38,.49,.09),'#f7e5ab',.48,1.05,.35);
 part(saoDo,new THREE.BoxGeometry(.38,.08,.11),'#3878ac',.48,1.31,.36);
 part(saoDo,new THREE.SphereGeometry(.16,10,8),'#f6d866',-.27,1.64,.36);
+// Second Sao Do patrol: female student with exceptionally long black hair to the ankles.
+const saoDoGirl=new THREE.Group();saoDoGirl.position.set(-23,0,24);scene.add(saoDoGirl);
+part(saoDoGirl,new THREE.CapsuleGeometry(.31,.66,5,12),'#fff9f2',0,1.17,0);
+part(saoDoGirl,new THREE.SphereGeometry(.36,16,12),'#f0bf9d',0,2.12,0);
+part(saoDoGirl,new THREE.SphereGeometry(.40,16,12),'#111521',0,2.38,-.055).scale.y=.55;
+for(const x of [-.16,.16]){part(saoDoGirl,new THREE.CapsuleGeometry(.12,.49,4,8),'#273f70',x,.43,0);part(saoDoGirl,new THREE.CapsuleGeometry(.105,.47,4,8),'#fff8ee',x*2.8,1.3,0)}
+part(saoDoGirl,new THREE.BoxGeometry(.23,.56,.06),'#df4654',0,1.47,.36);
+part(saoDoGirl,new THREE.BoxGeometry(.38,.49,.09),'#f7e5ab',.48,1.05,.35);
+part(saoDoGirl,new THREE.SphereGeometry(.16,10,8),'#f6d866',-.27,1.64,.36);
+for(const x of [-.23,.23]){
+ const longHair=part(saoDoGirl,new THREE.CapsuleGeometry(.17,.96,6,10),'#10121b',x,1.10,-.29);
+ longHair.scale.y=1.55;
+ part(saoDoGirl,new THREE.SphereGeometry(.19,12,10),'#111521',x,.15,-.29);
+}
+const saoGirlPoint={id:'saoDoGirl',x:-23,z:24,label:'⭐ Sao Đỏ nữ kiểm tra đồng phục'};
+const saoGirlRoute=[[-23,24],[-27,8],[-9,8],[10,10],[24,20],[6,28],[-14,29]];
+let saoGirlRouteIndex=1,activeSaoDo=saoDo;
 const saoPoint={id:'saoDo',x:12,z:27,label:'⭐ Sao Đỏ kiểm tra đồng phục'};
 const saoRoute=[[12,27],[27,27],[30,6],[15,4],[-8,7],[-28,8],[-28,27],[-8,30]];
 let saoRouteIndex=1,saoLastEncounter=-30000,saoEncounterOpen=false,saoNotes=0;
+let saoGirlLastEncounter=-30000;
 let saoChase=null;let saoPanicUntil=0;
 const saoStatsKey='be-bum-sao-do-stats-v1';
 function loadSaoStats(){try{const d=JSON.parse(localStorage.getItem(saoStatsKey)||'{}');return {encounters:Math.max(0,Math.floor(Number(d.encounters)||0)),escaped:Math.max(0,Math.floor(Number(d.escaped)||0)),caught:Math.max(0,Math.floor(Number(d.caught)||0))}}catch{return {encounters:0,escaped:0,caught:0}}}
@@ -357,9 +375,27 @@ function saoFlash(message){
  requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.transition='transform .4s cubic-bezier(.18,1.6,.35,1),opacity .22s';el.style.opacity='1';el.style.transform='translate(-50%,-50%) scale(1)'}));
  setTimeout(()=>{el.style.opacity='0';el.style.transform='translate(-50%,-50%) scale(1.15)'},1250);
 }
+// Public in-game announcement: visible marquee + browser Vietnamese text-to-speech.
+let saoAnnouncementTimer=0;
+function announceSaoCapture(name){
+ const safeName=String(name||'Học sinh').trim().slice(0,32)||'Học sinh';
+ const announcement=safeName+' - đã bị sao đỏ bắt được';
+ let bar=document.getElementById('saoAnnouncement');
+ if(!bar){bar=document.createElement('div');bar.id='saoAnnouncement';bar.style.cssText='position:fixed;top:60px;left:0;width:100%;height:52px;z-index:9998;overflow:hidden;pointer-events:none;background:rgba(20,52,85,.92);border-top:2px solid #ffd46b;border-bottom:2px solid #ffd46b;display:none';const label=document.createElement('div');label.style.cssText='position:absolute;white-space:nowrap;top:9px;font:800 25px system-ui;color:#fff1b8;text-shadow:0 2px 3px #132f49';bar.append(label);document.body.appendChild(bar)}
+ const label=bar.firstElementChild;label.textContent='📢 '+announcement+' 📢';bar.style.display='block';
+ label.style.transition='none';label.style.left='100%';void label.offsetWidth;
+ const distance=window.innerWidth+label.getBoundingClientRect().width;
+ const duration=Math.max(6500,Math.min(11500,distance/145*1000));
+ label.style.transition='left '+duration+'ms linear';label.style.left='-'+label.getBoundingClientRect().width+'px';
+ clearTimeout(saoAnnouncementTimer);saoAnnouncementTimer=setTimeout(()=>bar.style.display='none',duration+250);
+ try{if('speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined'){
+  window.speechSynthesis.cancel();const voice=new SpeechSynthesisUtterance(announcement);voice.lang='vi-VN';voice.rate=.9;voice.pitch=1;voice.volume=1;window.speechSynthesis.speak(voice)
+ }}catch(e){console.warn('Voice announcement unavailable',e)}
+}
 function saoPenalty(){
+ announceSaoCapture(appearance.name);
  recordSaoStat('caught');saoNotes++;const loss=Math.min(20,availableXP());if(loss>0)spendXP(loss);
- saoEncounterOpen=false;saoChase=null;saoPanicUntil=performance.now()+1600;saoLastEncounter=performance.now();
+ saoEncounterOpen=false;saoChase=null;saoPanicUntil=performance.now()+1600;saoLastEncounter=performance.now();saoGirlLastEncounter=performance.now();
  dialog('📒 Sao Đỏ đã bắt được!','Em được nhắc nhở vì bỏ chạy khi kiểm tra. '+(loss?'Trừ '+loss+' XP.':'Hiện chưa có XP nên không trừ điểm.')+' Hãy bình tĩnh và hợp tác lần sau nhé.',[['Em hiểu rồi',()=>{}]]);
 }
 function startSaoEscape(){
@@ -370,8 +406,8 @@ function startSaoEscape(){
 }
 function meetSaoDo(){
  if(floor!==-1||saoEncounterOpen||saoChase||document.getElementById('modal').style.display==='flex'||!welcome.hidden)return;
- const now=performance.now();if(now-saoLastEncounter<30000)return;
- saoLastEncounter=now;recordSaoStat('encounters');saoEncounterOpen=true;autoTarget=null;saoPanicUntil=now+2400;saoFlash('😳 SAO ĐỎ!');
+ const now=performance.now();if(now-(activeSaoDo===saoDoGirl?saoGirlLastEncounter:saoLastEncounter)<30000)return;
+ if(activeSaoDo===saoDoGirl)saoGirlLastEncounter=now;else saoLastEncounter=now;recordSaoStat('encounters');saoEncounterOpen=true;autoTarget=null;saoPanicUntil=now+2400;saoFlash('😳 SAO ĐỎ!');
  const task=saoTasks[Math.floor(Math.random()*saoTasks.length)];
  function recordSaoNote(){saoNotes++;saoEncounterOpen=false;dialog('📒 Sổ nhắc nhở','Sao Đỏ nhắc '+appearance.name+' giữ đồng phục gọn gàng và đi lại đúng nội quy. Số lần được nhắc: '+saoNotes+'.',[['Em sẽ chú ý!',()=>{}]])}
  dialog('⭐ SAO ĐỎ · KIỂM TRA','Bạn ơi, dừng lại! Bạn tên là gì? Bạn có muốn trả lời câu hỏi về nội quy không?',[
@@ -381,33 +417,38 @@ function meetSaoDo(){
  ]);
 }
 function moveSaoDo(dt){
- if(floor!==-1){saoDo.visible=false;saoChase=null;return}
- saoDo.visible=true;
- // Sao Đỏ đứng yên xuyên suốt các hộp thoại tương tác.
- if(saoEncounterOpen)return;
- if(saoChase){
-  const chase=saoChase;chase.time+=dt;
-  const dx=player.position.x-saoDo.position.x,dz=player.position.z-saoDo.position.z,dist=Math.hypot(dx,dz);
-  // Kết quả mỗi lượt được rút thăm độc lập; không dựa vào khoảng cách, kỹ năng hay cấp độ.
-  const speed=chase.caught?Math.max(3.8,dist/Math.max(.35,chase.duration-chase.time)):4.0;
-  if(dist>.01){const step=Math.min(dist,speed*dt);saoDo.position.x+=dx/dist*step;saoDo.position.z+=dz/dist*step;saoDo.rotation.y=Math.atan2(dx,dz)}
-  saoDo.position.y=Math.abs(Math.sin(chase.time*18))*.09;
-  if(chase.time>=chase.duration){
-   saoDo.position.y=0;
-   if(chase.caught)saoPenalty();
-   else{recordSaoStat('escaped');saoChase=null;saoLastEncounter=performance.now();saoFlash('🎉 CHẠY THOÁT!');document.getElementById('tip').textContent='Sao Đỏ không bắt được! Không bị trừ XP.'}
+ if(floor!==-1){saoDo.visible=false;saoDoGirl.visible=false;saoChase=null;return}
+ saoDo.visible=true;saoDoGirl.visible=true;
+ const officers=[{group:saoDo,point:saoPoint,route:saoRoute,index:saoRouteIndex},{group:saoDoGirl,point:saoGirlPoint,route:saoGirlRoute,index:saoGirlRouteIndex}];
+ for(const officer of officers){
+  const guard=officer.group;
+  if(saoEncounterOpen&&guard===activeSaoDo)continue;
+  if(saoChase&&guard===activeSaoDo){
+   const chase=saoChase;chase.time+=dt;
+   const dx=player.position.x-guard.position.x,dz=player.position.z-guard.position.z,dist=Math.hypot(dx,dz);
+   const speed=chase.caught?Math.max(3.8,dist/Math.max(.35,chase.duration-chase.time)):4;
+   if(dist>.01){const step=Math.min(dist,speed*dt);guard.position.x+=dx/dist*step;guard.position.z+=dz/dist*step;guard.rotation.y=Math.atan2(dx,dz)}
+   guard.position.y=Math.abs(Math.sin(chase.time*18))*.09;
+   if(chase.time>=chase.duration){
+    guard.position.y=0;
+    if(chase.caught)saoPenalty();
+    else{recordSaoStat('escaped');saoChase=null;saoLastEncounter=performance.now();saoGirlLastEncounter=performance.now();saoFlash('🎉 CHẠY THOÁT!');document.getElementById('tip').textContent='Sao Đỏ không bắt được! Không bị trừ XP.'}
+   }
+  }else{
+   guard.position.y=0;
+   const dest=officer.route[officer.index],dx=dest[0]-guard.position.x,dz=dest[1]-guard.position.z,dist=Math.hypot(dx,dz);
+   if(dist<.6)officer.index=(officer.index+1)%officer.route.length;
+   else{const step=Math.min(dist,2.15*dt);guard.position.x+=dx/dist*step;guard.position.z+=dz/dist*step;guard.rotation.y=Math.atan2(dx,dz)}
   }
- }else{
-  saoDo.position.y=0;
-  const dest=saoRoute[saoRouteIndex],dx=dest[0]-saoDo.position.x,dz=dest[1]-saoDo.position.z,dist=Math.hypot(dx,dz);
-  if(dist<.6)saoRouteIndex=(saoRouteIndex+1)%saoRoute.length;
-  else{const step=Math.min(dist,2.15*dt);saoDo.position.x+=dx/dist*step;saoDo.position.z+=dz/dist*step;saoDo.rotation.y=Math.atan2(dx,dz)}
+  officer.point.x=guard.position.x;officer.point.z=guard.position.z;
+  if(guard===saoDo)saoRouteIndex=officer.index;else saoGirlRouteIndex=officer.index;
  }
- saoPoint.x=saoDo.position.x;saoPoint.z=saoDo.position.z;
- if(!saoChase&&welcome.hidden&&document.getElementById('creator').hidden&&Math.hypot(player.position.x-saoDo.position.x,player.position.z-saoDo.position.z)<2.15)meetSaoDo();
+ if(!saoChase&&!saoEncounterOpen&&welcome.hidden&&document.getElementById('creator').hidden){
+  for(const officer of officers){if(Math.hypot(player.position.x-officer.group.position.x,player.position.z-officer.group.position.z)<2.15){activeSaoDo=officer.group;meetSaoDo();break}}
+ }
 }
 function npcName(group,name,height){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#173956';ctx.beginPath();ctx.roundRect(8,8,496,112,28);ctx.fill();ctx.strokeStyle='#ffe6a2';ctx.lineWidth=7;ctx.stroke();ctx.font='bold 43px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#ffffff';ctx.fillText(name,256,65);const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));sprite.position.set(0,height,0);sprite.scale.set(2.75,.7,1);group.add(sprite)}
-for(const p of points){if(p.id!=='milo')marker(p)}npcName(saoDo,'⭐ SAO ĐỎ',3.05);npcTargets.push({point:saoPoint,group:saoDo});
+for(const p of points){if(p.id!=='milo')marker(p)}npcName(saoDo,'⭐ SAO ĐỎ',3.05);npcTargets.push({point:saoPoint,group:saoDo});npcName(saoDoGirl,'⭐ SAO ĐỎ NỮ',3.05);npcTargets.push({point:saoGirlPoint,group:saoDoGirl});
 
 const seniorStudent=new THREE.Group();seniorStudent.position.set(6,0,8);scene.add(seniorStudent);npcTargets.push({point:points.find(p=>p.id==='milo'),group:seniorStudent});
 part(seniorStudent,new THREE.CapsuleGeometry(.38,.85,6,14),'#ffffff',0,1.42,0);part(seniorStudent,new THREE.BoxGeometry(.83,.6,.52),'#273c68',0,.8,0);part(seniorStudent,new THREE.SphereGeometry(.39,18,14),'#e6b28e',0,2.48,0);const huyHair=part(seniorStudent,new THREE.SphereGeometry(.43,16,12),'#202735',0,2.76,-.06);huyHair.scale.y=.52;for(const x of [-.19,.19]){part(seniorStudent,new THREE.CapsuleGeometry(.12,.52,5,10),'#263b61',x,.36,0);part(seniorStudent,new THREE.SphereGeometry(.035,8,6),'#253348',x,2.5,.36)}part(seniorStudent,new THREE.BoxGeometry(.13,.52,.07),'#a72839',0,1.55,.43);part(seniorStudent,new THREE.BoxGeometry(.5,.65,.12),'#d4ae70',.55,1.18,.38);// Principal's formal uniform: collar, lapels, badge, belt and expressive face.
@@ -897,7 +938,7 @@ function startEnrollment(){const existing=readStudentCode();if(existing){dialog(
 function submitToHuy(){dialog('👨‍🏫 Thầy Huy · Phòng giám thị','Thầy lắng nghe phản ánh về bạn bè, đồng phục, nội quy, xin hỗ trợ hoặc đề nghị giải quyết mâu thuẫn. Em hãy chọn vấn đề cần trình bày.',[['🤝 Mâu thuẫn với bạn',()=>huyResponse('mâu thuẫn')],['📋 Khiếu nại nội quy',()=>huyResponse('nội quy')],['🙏 Xin giúp đỡ',()=>huyResponse('xin giúp đỡ')],['Quay lại',()=>startEnrollment()]])}
 function huyResponse(topic){const message=topic==='mâu thuẫn'?'Thầy yêu cầu các em bình tĩnh, không đánh nhau, trình bày rõ sự việc và cùng tìm cách hòa giải.':topic==='nội quy'?'Thầy sẽ xem xét công bằng, nhưng mọi học sinh đều phải tuân thủ nội quy.':'Em hãy nói rõ khó khăn với thầy hoặc giáo viên chủ nhiệm. Thầy sẽ hướng dẫn trong phạm vi có thể.';dialog('👨‍🏫 Thầy Huy',message+'\n\nĐây là phản hồi mô phỏng trong game, chưa gửi báo cáo đến người quản lý thật.',[['Em hiểu rồi',()=>{}]])}
 function askEnrollmentQuestion(n){if(n>=enrollmentQuestions.length){const bytes=new Uint32Array(1);if(globalThis.crypto&&crypto.getRandomValues)crypto.getRandomValues(bytes);else bytes[0]=Math.floor(Math.random()*4294967295);const code=String(100000+bytes[0]%900000);localStorage.setItem(studentCodeKey,JSON.stringify({name:appearance.name,code}));state.started=true;state.clues=['book','board'];state.complete=true;save();dialog('🎉 NHẬP HỌC THÀNH CÔNG','Chúc mừng '+appearance.name+'!\nMã số học sinh: '+code+'\nHãy ghi nhớ 6 chữ số này. Mã được lưu trên thiết bị này và hiện chưa phải tài khoản trực tuyến.',[['Em đã nhớ mã',()=>{}]]);return}const [question,answers,correct]=enrollmentQuestions[n];dialog('📝 Kiểm tra nội quy · '+(n+1)+'/3',question,answers.map((answer,i)=>[answer,()=>i===correct?askEnrollmentQuestion(n+1):dialog('📘 Hãy thử lại','Chưa đúng rồi. Em đọc lại nội quy và thử lại nhé.',[['Đọc lại nội quy',()=>dialog('📜 Nội quy nhà trường',schoolRules,[['Thử lại',()=>askEnrollmentQuestion(n)]])],['Trả lời lại',()=>askEnrollmentQuestion(n)]])]))}
-function bowToGuard(){avatar.rotation.x=.52;setTimeout(()=>{avatar.rotation.x=0},950)}let greetedGuard=true;update();let near=null;function interact(){if(!schoolGateUnlocked||!welcome.hidden||!near)return;if(near.id==='saoDo'){meetSaoDo();return}if(near.id==='souvenir'){openSouvenirShop();return}if(near.id==='canteen'){openCanteen();return}
+function bowToGuard(){avatar.rotation.x=.52;setTimeout(()=>{avatar.rotation.x=0},950)}let greetedGuard=true;update();let near=null;function interact(){if(!schoolGateUnlocked||!welcome.hidden||!near)return;if(near.id==='saoDo'||near.id==='saoDoGirl'){activeSaoDo=near.id==='saoDoGirl'?saoDoGirl:saoDo;meetSaoDo();return}if(near.id==='souvenir'){openSouvenirShop();return}if(near.id==='canteen'){openCanteen();return}
 if(near.id==='libraryTeacher'){dialog('👩‍🏫 Cô Lan · Thủ thư','Nhiệm vụ: đọc sách, giữ trật tự và trả lời câu hỏi về câu chuyện.',[['📖 Nhận nhiệm vụ',()=>functionalQuiz('library','Cô Lan','Trong thư viện em cần làm gì?',['Nói chuyện thật to','Đi nhẹ, nói khẽ và giữ sách sạch','Chạy đuổi bắt'],1)],['📚 Đọc sách',libraryLesson]]);return}
 if(near.id==='sportsTeacher'){dialog('👨‍🏫 Thầy Minh · Thể dục','Trước khi chơi thể thao phải khởi động. Sau đó em hãy thử ném bóng rổ!',[['🤸 Nhận nhiệm vụ',()=>functionalQuiz('sports','Thầy Minh','Trước khi vận động, em nên làm gì?',['Khởi động nhẹ nhàng','Uống thật nhiều nước đá','Chạy thật nhanh ngay'],0)],['🏀 Đi ném bóng',()=>{near=sportsPoints.find(p=>p.id==='hoop');interact()}]]);return}
 if(near.id==='sportsWarmup'){functionalQuiz('sports','Thầy Minh','Động tác khởi động nào phù hợp?',['Xoay cổ tay, cổ chân nhẹ nhàng','Nhảy từ trên cao xuống','Xô đẩy bạn'],0);return}
@@ -932,7 +973,7 @@ document.getElementById('viewStage').onclick=()=>{if(floor!==0)return;lectureSta
 let lookPointer=null,lastX=0,lastY=0,downX=0,downY=0;const activeCanvasPointers=new Set();const npcRay=new THREE.Raycaster(),npcMouse=new THREE.Vector2();let autoTarget=null,autoStuck=0;function selectNpcAt(x,y){if(!schoolGateUnlocked||!welcome.hidden||!document.getElementById('creator').hidden||document.getElementById('modal').style.display==='flex')return;
 const rect=renderer.domElement.getBoundingClientRect();if(!rect.width||!rect.height)return;
 npcMouse.set((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1);npcRay.setFromCamera(npcMouse,camera);
-const list=floor<0?[...points,saoPoint]:floor===2?sportsPoints:floor===3?simplePoints:floor===4?libraryPoints:floor===5?artPoints:indoorPoints;
+const list=floor<0?[...points,saoPoint,saoGirlPoint]:floor===2?sportsPoints:floor===3?simplePoints:floor===4?libraryPoints:floor===5?artPoints:indoorPoints;
 const offset=floor<0?0:floor===2?170:floor===3?220:floor===4?270:floor===5?320:120;
 let best=null;
 // Exact raycast against each physical desktop/label, avoiding perspective-based nearest-center mistakes.
