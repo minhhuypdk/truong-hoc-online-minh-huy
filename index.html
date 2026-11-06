@@ -2326,7 +2326,9 @@ function communityReceive(id,data){
  if(data.t==='community-history'&&!bumNet.host&&Array.isArray(data.messages)){for(const m of data.messages.slice(-communityMax))communityAdd(m);return true}
  if(data.t!=='community-message')return false;
  const m=data.message;
- if(!m||typeof m!=='object'||m.teacher||typeof m.text!=='string'||m.text.length>180)return true;
+ if(!m||typeof m!=='object'||typeof m.text!=='string'||m.text.length>180)return true;
+ if(!bumNet.host&&m.teacher){communityAdd(m);return true}
+ if(m.teacher)return true;
  if(bumNet.host){
   const issue=communityIssue(m.text);
   if(issue){communityTeacherReply(issue);return true}
