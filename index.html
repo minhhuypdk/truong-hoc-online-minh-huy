@@ -2093,7 +2093,7 @@ function supervisorPick(){
 }
 function updateSupervisorNotice(){
  const now=performance.now();
- const playing=welcome.hidden&&floor===-1&&!document.hidden;
+ const playing=welcome.hidden&&!document.hidden;
  if(supervisorHideAt&&now>=supervisorHideAt){supervisorNotice.hidden=true;supervisorHideAt=0}
  if(!playing){if(!welcome.hidden)supervisorWasPlaying=false;return}
  if(!supervisorWasPlaying){supervisorWasPlaying=true;supervisorNextAt=now}
@@ -2103,6 +2103,9 @@ function updateSupervisorNotice(){
  supervisorNotice.hidden=false;supervisorHideAt=now+16000;
 }
 
+// Announcements are scheduled independently of the 3D render loop.
+setInterval(()=>{try{updateSupervisorNotice()}catch(error){console.warn('Supervisor notice',error)}},1000);
+setTimeout(()=>{try{updateSupervisorNotice()}catch(error){console.warn('Supervisor initial notice',error)}},150);
 const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);updateSupervisorNotice();updateSchoolNature(clock.elapsedTime);updateAmbientPupils(clock.elapsedTime,dt);updateNpcMissionProximity();updateSurpriseQuests();checkSurpriseTarget();bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
  const manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
 // Manual movement is camera-relative: W/up always moves into the scene from the current viewpoint.
