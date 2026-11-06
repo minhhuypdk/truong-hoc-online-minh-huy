@@ -1580,7 +1580,7 @@ book.position.set(0,1.18,.46);book.rotation.x=-.25;reader.model.add(book);
 // Four pupils in a circle playing Vietnamese shuttlecock kicking.
 const shuttlePlayers=[];
 for(let i=0;i<4;i++){
- const a=i*Math.PI/2,px=-23+Math.cos(a)*2.8,pz=13+Math.sin(a)*2.8;
+ const a=i*Math.PI/2,px=-5+Math.cos(a)*2.8,pz=16+Math.sin(a)*2.8;
  const pupil=makeAmbientPupil(i+1,px,pz,'shuttle');pupil.angle=a;shuttlePlayers.push(pupil);
 }
 const shuttle=new THREE.Group(),shuttleHead=new THREE.Mesh(new THREE.SphereGeometry(.095,8,6),new THREE.MeshBasicMaterial({color:0xffffff}));
@@ -1588,7 +1588,7 @@ shuttle.add(shuttleHead);
 for(let i=0;i<5;i++){const feather=new THREE.Mesh(new THREE.ConeGeometry(.045,.34,5),new THREE.MeshBasicMaterial({color:[0xe74e55,0xf8e5c4,0x5c9dd8][i%3]}));feather.position.set(Math.cos(i*2*Math.PI/5)*.075,.23,Math.sin(i*2*Math.PI/5)*.075);feather.rotation.z=Math.cos(i*2*Math.PI/5)*.35;shuttle.add(feather)}
 shuttleGroup.add(shuttle);
 // Three other pupils wander through the open courtyard.
-for(let i=0;i<3;i++)makeAmbientPupil(i+5,[-30,27,18][i],[-18,23,-22][i],'wander');
+for(let i=0;i<3;i++)makeAmbientPupil(i+5,[-10,13,1][i],[23,23,29][i],'wander');
 function updateAmbientPupils(t,dt){
  const outdoor=floor===-1;
  for(const pupil of ambientPupils){
@@ -1597,9 +1597,9 @@ function updateAmbientPupils(t,dt){
   if(pupil.activity==='read'){book.rotation.z=Math.sin(t*.8)*.035;continue}
   if(pupil.activity==='shuttle'){
    const a=pupil.angle+t*.12;
-   pupil.root.position.x=-23+Math.cos(a)*2.8;
-   pupil.root.position.z=13+Math.sin(a)*2.8;
-   pupil.root.rotation.y=Math.atan2(-23-pupil.root.position.x,13-pupil.root.position.z);
+   pupil.root.position.x=-5+Math.cos(a)*2.8;
+   pupil.root.position.z=16+Math.sin(a)*2.8;
+   pupil.root.rotation.y=Math.atan2(-5-pupil.root.position.x,16-pupil.root.position.z);
    pupil.model.position.y=Math.max(0,Math.sin(t*5+pupil.phase))*.08;
    continue;
   }
@@ -1607,7 +1607,7 @@ function updateAmbientPupils(t,dt){
   const dx=pupil.targetX-pupil.root.position.x,dz=pupil.targetZ-pupil.root.position.z;
   const distance=Math.hypot(dx,dz);
   if(distance<.4){
-   if(pupil.wait<=0){pupil.targetX=pupil.originX+Math.sin(t*.71+pupil.phase)*4;pupil.targetZ=pupil.originZ+Math.cos(t*.53+pupil.phase)*4;pupil.wait=3+pupil.index%3}
+   if(pupil.wait<=0){pupil.targetX=pupil.originX+Math.sin(t*.71+pupil.phase)*2.2;pupil.targetZ=pupil.originZ+Math.cos(t*.53+pupil.phase)*2.2;pupil.wait=3+pupil.index%3}
    pupil.model.position.y=0;
   }else{
    const speed=.7+(pupil.index%3)*.17,step=Math.min(distance,dt*speed);
