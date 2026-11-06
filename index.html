@@ -1596,16 +1596,19 @@ function bumSend(conn,msg){if(conn?.open)try{conn.send(msg)}catch(e){console.war
 function bumBroadcast(msg,except){for(const [id,conn] of bumNet.connections)if(id!==except)bumSend(conn,msg)}
 function bumRemote(id){let entry=bumNet.remotes.get(id);if(entry)return entry;
  const root=new THREE.Group(),model=avatar.clone(true);
+ const extraIndex=avatar.children.indexOf(accessories);
+ const remoteExtras=extraIndex>=0?model.children[extraIndex]:null;
+ const remoteHair=model.children[avatar.children.indexOf(hair)];
  model.traverse(o=>{if(o.isMesh&&o.material)o.material=o.material.clone()});
  // Remove local appearance-specific meshes before dressing the remote clone.
  for(const groupName of ['studentOutfit','studentHairShoes']){const g=model.getObjectByName(groupName);if(g)g.parent.remove(g)}
- const extraIndex=avatar.children.indexOf(accessories);if(extraIndex>=0&&model.children[extraIndex])model.children[extraIndex].clear();
+ if(remoteExtras)remoteExtras.clear();
  root.add(model);
  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
  const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
  label.scale.set(3.8,.95,1);label.position.set(0,3.25,0);root.add(label);
- scene.add(root);entry={root,model,canvas,texture,name:'',lookKey:'',targetX:0,targetZ:0,targetR:0,f:-99,a:'',updated:performance.now()};
+ scene.add(root);entry={root,model,remoteExtras,remoteHair,canvas,texture,name:'',lookKey:'',targetX:0,targetZ:0,targetR:0,f:-99,a:'',updated:performance.now()};
  bumNet.remotes.set(id,entry);return entry;
 }
 function bumDropRemote(id){const e=bumNet.remotes.get(id);if(!e)return;scene.remove(e.root);e.texture.dispose();e.root.traverse(o=>{if(o.isSprite)o.material.dispose()});bumNet.remotes.delete(id)}
@@ -1620,12 +1623,12 @@ function bumReceive(id,data){
    const key=JSON.stringify(look);
    if(key!==e.lookKey){
     e.lookKey=key;
-    const clone=e.model,extraIndex=avatar.children.indexOf(accessories);
-    if(extraIndex>=0&&clone.children[extraIndex])clone.children[extraIndex].clear();
+    const clone=e.model;
+    if(e.remoteExtras)e.remoteExtras.clear();
     for(const m of clone.children){if(m.isMesh&&m.material?.color&&m.material.color.getHexString()==='ffd1aa')m.material.color.set(look.skin)}
-    const hairClone=clone.children[avatar.children.indexOf(hair)];
+    const hairClone=e.remoteHair;
     if(hairClone?.material?.color)hairClone.material.color.set(look.hair);
-    if(extraIndex>=0&&clone.children[extraIndex])addStudentExtras(clone.children[extraIndex],look);
+    if(e.remoteExtras)addStudentExtras(e.remoteExtras,look);
     dressStudent(clone,look);addHairAndShoes(clone,look);
    }
   }
