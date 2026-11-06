@@ -2237,15 +2237,15 @@ bumNetPanel.hidden=true;bumNetPanel.style.display='none';
 document.body.append(bumNetPanel);
 const bumStatus=t=>{document.getElementById('bumNetStatus').textContent=t;bumNetBtn.textContent='👫 '+(bumNet.peer?'Bạn bè '+(bumNet.connections.size+1):'Chơi cùng bạn')};
 const multiplayerIndicator=document.createElement('button');multiplayerIndicator.type='button';multiplayerIndicator.style.cssText='position:fixed;top:calc(env(safe-area-inset-top,0px) + 76px);left:50%;transform:translateX(-50%);z-index:10035;border:2px solid #a8d9ff;border-radius:15px;background:#143e5b;color:white;padding:6px 10px;font:700 12px system-ui;max-width:45vw;cursor:pointer';multiplayerIndicator.textContent='🔴 Đang kết nối...';document.body.append(multiplayerIndicator);multiplayerIndicator.onclick=()=>bumStart(false);
-function updateMultiplayerIndicator(){const connected=[...bumNet.connections.values()].filter(c=>c.open).length;multiplayerIndicator.textContent=connected?'🟢 Online: '+(connected+1):bumNet.host?'🟡 Online: 1 · Chờ bạn':'🔴 Chưa kết nối · Thử lại'}setInterval(updateMultiplayerIndicator,1500);
+function updateMultiplayerIndicator(){const connected=[...bumNet.connections.values()].filter(c=>c.open).length;multiplayerIndicator.textContent=connected?'🟢 Online: '+(connected+1):bumNet.host?'🟡 Online: 1 · Chờ bạn':bumNet.peer&&!bumNet.peer.destroyed?'🟠 Đang tìm phòng · Thử lại':'🔴 Chưa kết nối · Thử lại'}setInterval(updateMultiplayerIndicator,1500);
 // No multiplayer panel toggle: opening the game joins the shared room automatically.
 function bumLoadPeer(){
  if(window.Peer)return Promise.resolve();
  if(bumNet.loading)return bumNet.loading;
  bumNet.loading=new Promise((resolve,reject)=>{
   const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
-  script.onload=()=>window.Peer?resolve():reject(Error('Không tải được PeerJS'));
-  script.onerror=()=>reject(Error('Không tải được thư viện kết nối'));
+  script.onload=()=>window.Peer?resolve():(bumNet.loading=null,script.remove(),reject(Error('Không tải được PeerJS')));
+  script.onerror=()=>{bumNet.loading=null;script.remove();reject(Error('Không tải được thư viện kết nối'))};
   document.head.append(script);
  });return bumNet.loading;
 }
@@ -2460,7 +2460,7 @@ async function bumStart(host=false){
     setTimeout(()=>{if(bumNet.peer!==peer||document.hidden||conn.open)return;const active=[...bumNet.connections.values()].some(c=>c.open);if(active)return;bumStatus('🔄 Chưa kết nối được, đang tìm lại phòng chung...');bumStart(true)},14000);
    }
   });
- }catch(e){bumStatus('⚠️ '+e.message)}
+ }catch(e){bumStatus('⚠️ '+e.message);if(generation===bumNet.attempt&&!document.hidden)setTimeout(()=>{if(generation===bumNet.attempt)bumStart(false)},5000)}
 }
 const bumPhrases=['👋 Chào bạn!','⚽ Chơi bóng nhé!','🕺 Cùng nhảy nào!','👏 Bạn giỏi quá!','😊 Cảm ơn bạn!','👋 Tạm biệt!'];
 for(let i=0;i<bumPhrases.length;i++){const b=document.createElement('button');b.textContent=bumPhrases[i];b.onclick=()=>{if(!bumNet.peer)return bumStatus('Hãy vào phòng trước');const data={t:'say',i};if(bumNet.host)bumBroadcast(data);else for(const conn of bumNet.connections.values())bumSend(conn,data);document.getElementById('tip').textContent=bumPhrases[i]};document.getElementById('bumNetSay').append(b)}
