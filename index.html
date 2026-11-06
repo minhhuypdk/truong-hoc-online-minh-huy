@@ -2338,7 +2338,9 @@ function communityReceive(id,data){
  }else if(communityAdd(m)){}
  return true;
 }
-communityToggle.onclick=()=>{communityPanel.hidden=!communityPanel.hidden;if(!communityPanel.hidden)communityRender()};
+function positionCommunityPanel(){const gift=document.getElementById('levelWheelButton');if(!gift)return;const rect=gift.getBoundingClientRect();const gap=5;const right=Math.max(0,window.innerWidth-rect.left+gap);communityPanel.style.setProperty('right',right+'px','important');communityPanel.style.setProperty('left','auto','important');communityPanel.style.setProperty('width',Math.min(380,Math.max(180,window.innerWidth-right-8))+'px','important')}
+window.addEventListener('resize',()=>{if(!communityPanel.hidden)positionCommunityPanel()});
+communityToggle.onclick=()=>{communityPanel.hidden=!communityPanel.hidden;if(!communityPanel.hidden){positionCommunityPanel();communityRender()}};
 document.getElementById('communityClose').onclick=()=>communityPanel.hidden=true;
 document.getElementById('communityCompose').onsubmit=e=>{
  e.preventDefault();const input=document.getElementById('communityInput'),message=input.value.trim().replace(/\s+/g,' ');if(!message)return;
