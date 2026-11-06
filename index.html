@@ -322,6 +322,7 @@ part(saoDo,new THREE.SphereGeometry(.16,10,8),'#f6d866',-.27,1.64,.36);
 const saoPoint={id:'saoDo',x:12,z:27,label:'⭐ Sao Đỏ kiểm tra đồng phục'};
 const saoRoute=[[12,27],[27,27],[30,6],[15,4],[-8,7],[-28,8],[-28,27],[-8,30]];
 let saoRouteIndex=1,saoLastEncounter=-30000,saoEncounterOpen=false,saoNotes=0;
+let saoChase=null;let saoPanicUntil=0;
 const saoTasks=[
 {q:'Em giúp Sao Đỏ nhé: Khi gặp thầy cô, em nên làm gì?',a:['Chào hỏi lễ phép','Chạy đi thật nhanh','Làm ngơ'],correct:0},
 {q:'Sao Đỏ nhờ em kiểm tra: Em thấy rác trong sân trường, em sẽ?',a:['Để nguyên','Bỏ vào thùng rác','Đá rác sang bên'],correct:1},
@@ -330,13 +331,55 @@ const saoTasks=[
 {q:'Sao Đỏ nhờ em nhắc bạn: Khi xếp hàng cần?',a:['Chen lên trước','Xếp hàng ngay ngắn','Đẩy bạn khác'],correct:1},
 {q:'Sao Đỏ hỏi: Muốn mượn đồ của bạn cần?',a:['Tự lấy','Giấu đi','Xin phép trước'],correct:2}
 ];
-function meetSaoDo(){if(floor!==-1||saoEncounterOpen||document.getElementById('modal').style.display==='flex'||!welcome.hidden)return;
-const now=performance.now();if(now-saoLastEncounter<30000)return;saoLastEncounter=now;saoEncounterOpen=true;autoTarget=null;
-const task=saoTasks[Math.floor(Math.random()*saoTasks.length)];
-function recordSaoNote(){saoNotes++;saoEncounterOpen=false;dialog('📒 Sổ nhắc nhở','Sao Đỏ ghi một lời nhắc: '+appearance.name+' cần chú ý đồng phục và nề nếp hơn nhé! Tổng lời nhắc trong lượt chơi: '+saoNotes+'.',[['Em sẽ cố gắng!',()=>{}]])}
-dialog('⭐ SAO ĐỎ · KIỂM TRA ĐỒNG PHỤC','Chào '+appearance.name+'! Mình đang đi tuần. Mình sẽ nhắc em giữ đồng phục gọn gàng. Nếu giúp mình một việc, mình sẽ không ghi tên em vào sổ.',[['🤝 Giúp Sao Đỏ',()=>dialog('🌟 Nhiệm vụ Sao Đỏ',task.q,task.a.map((answer,i)=>[answer,()=>{if(i===task.correct){saoEncounterOpen=false;dialog('👏 Cảm ơn em!','Sao Đỏ cảm ơn '+appearance.name+'! Em đã giúp mình, lần này không bị ghi tên.',[['Tạm biệt!',()=>{}]])}else recordSaoNote()}]))],['📒 Nhận lời nhắc',recordSaoNote]])}
-function moveSaoDo(dt){if(floor!==-1){saoDo.visible=false;return}saoDo.visible=true;const dest=saoRoute[saoRouteIndex];const dx=dest[0]-saoDo.position.x,dz=dest[1]-saoDo.position.z,dist=Math.hypot(dx,dz);if(dist<.6)saoRouteIndex=(saoRouteIndex+1)%saoRoute.length;else{const step=Math.min(dist,2.15*dt);saoDo.position.x+=dx/dist*step;saoDo.position.z+=dz/dist*step;saoDo.rotation.y=Math.atan2(dx,dz)}saoPoint.x=saoDo.position.x;saoPoint.z=saoDo.position.z;
-if(welcome.hidden&&document.getElementById('creator').hidden&&Math.hypot(player.position.x-saoDo.position.x,player.position.z-saoDo.position.z)<2.15)meetSaoDo()}
+function saoFlash(message){
+ let el=document.getElementById('saoFlash');
+ if(!el){el=document.createElement('div');el.id='saoFlash';el.style.cssText='position:fixed;left:50%;top:24%;transform:translate(-50%,-50%) scale(.15);z-index:10001;background:linear-gradient(135deg,#fff6d4,#ff8f74);border:4px solid #fff;border-radius:24px;padding:18px 28px;box-shadow:0 12px 36px #47232b88;color:#9c2035;font:bold clamp(22px,5vw,45px) system-ui;text-align:center;pointer-events:none;opacity:0;transition:transform .4s cubic-bezier(.18,1.6,.35,1),opacity .22s';document.body.appendChild(el)}
+ el.textContent=message;el.style.transition='none';el.style.opacity='0';el.style.transform='translate(-50%,-50%) scale(.15)';
+ requestAnimationFrame(()=>requestAnimationFrame(()=>{el.style.transition='transform .4s cubic-bezier(.18,1.6,.35,1),opacity .22s';el.style.opacity='1';el.style.transform='translate(-50%,-50%) scale(1)'}));
+ setTimeout(()=>{el.style.opacity='0';el.style.transform='translate(-50%,-50%) scale(1.15)'},1250);
+}
+function saoPenalty(){
+ saoNotes++;const loss=Math.min(20,availableXP());if(loss>0)spendXP(loss);
+ saoEncounterOpen=false;saoChase=null;saoPanicUntil=performance.now()+1600;
+ dialog('📒 Sao Đỏ đã bắt được!','Em được nhắc nhở vì bỏ chạy khi kiểm tra. '+(loss?'Trừ '+loss+' XP.':'Hiện chưa có XP nên không trừ điểm.')+' Hãy bình tĩnh và hợp tác lần sau nhé.',[['Em hiểu rồi',()=>{}]]);
+}
+function startSaoEscape(){
+ saoEncounterOpen=false;autoTarget=null;
+ saoChase={time:0,grace:.9,startX:player.position.x,startZ:player.position.z};
+ saoPanicUntil=performance.now()+4500;saoFlash('😱 CHẠY THÔI!');
+ document.getElementById('tip').textContent='🏃 Sao Đỏ đang đuổi! Dùng phím WASD hoặc cần điều khiển để chạy xa 12m.';
+}
+function meetSaoDo(){
+ if(floor!==-1||saoEncounterOpen||saoChase||document.getElementById('modal').style.display==='flex'||!welcome.hidden)return;
+ const now=performance.now();if(now-saoLastEncounter<30000)return;
+ saoLastEncounter=now;saoEncounterOpen=true;autoTarget=null;saoPanicUntil=now+2400;saoFlash('😳 SAO ĐỎ!');
+ const task=saoTasks[Math.floor(Math.random()*saoTasks.length)];
+ function recordSaoNote(){saoNotes++;saoEncounterOpen=false;dialog('📒 Sổ nhắc nhở','Sao Đỏ nhắc '+appearance.name+' giữ đồng phục gọn gàng và đi lại đúng nội quy. Số lần được nhắc: '+saoNotes+'.',[['Em sẽ chú ý!',()=>{}]])}
+ dialog('⭐ SAO ĐỎ · KIỂM TRA','Bạn ơi, dừng lại! Bạn tên là gì? Bạn có muốn trả lời câu hỏi về nội quy không?',[
+ ['🙋 Em là '+appearance.name+' · Trả lời',()=>{saoEncounterOpen=false;dialog('🌟 Nhiệm vụ Sao Đỏ',task.q,task.a.map((answer,i)=>[answer,()=>{if(i===task.correct)dialog('👏 Tốt lắm!','Cảm ơn em đã hợp tác. Không bị trừ điểm.',[['Tạm biệt!',()=>{}]]);else recordSaoNote()}]))}],
+ ['🏃 Bỏ chạy!',startSaoEscape],
+ ['📒 Xin nhận lời nhắc',recordSaoNote]
+ ]);
+}
+function moveSaoDo(dt){
+ if(floor!==-1){saoDo.visible=false;saoChase=null;return}
+ saoDo.visible=true;
+ if(saoChase){
+  saoChase.time+=dt;
+  const dx=player.position.x-saoDo.position.x,dz=player.position.z-saoDo.position.z,dist=Math.hypot(dx,dz);
+  if(dist>0.01){const step=Math.min(dist,3.8*dt);saoDo.position.x+=dx/dist*step;saoDo.position.z+=dz/dist*step;saoDo.rotation.y=Math.atan2(dx,dz)}
+  const escaped=Math.hypot(player.position.x-saoChase.startX,player.position.z-saoChase.startZ)>=12||dist>=15;
+  if(escaped){saoChase=null;saoLastEncounter=performance.now();saoFlash('🎉 THOÁT RỒI!');document.getElementById('tip').textContent='Bạn đã chạy thoát. Không bị trừ XP.'}
+  else if(saoChase&&saoChase.time>.9&&dist<1.8)saoPenalty();
+  else if(saoChase&&saoChase.time>13)saoPenalty();
+ }else{
+  const dest=saoRoute[saoRouteIndex],dx=dest[0]-saoDo.position.x,dz=dest[1]-saoDo.position.z,dist=Math.hypot(dx,dz);
+  if(dist<.6)saoRouteIndex=(saoRouteIndex+1)%saoRoute.length;
+  else{const step=Math.min(dist,2.15*dt);saoDo.position.x+=dx/dist*step;saoDo.position.z+=dz/dist*step;saoDo.rotation.y=Math.atan2(dx,dz)}
+ }
+ saoPoint.x=saoDo.position.x;saoPoint.z=saoDo.position.z;
+ if(!saoChase&&welcome.hidden&&document.getElementById('creator').hidden&&Math.hypot(player.position.x-saoDo.position.x,player.position.z-saoDo.position.z)<2.15)meetSaoDo();
+}
 function npcName(group,name,height){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#173956';ctx.beginPath();ctx.roundRect(8,8,496,112,28);ctx.fill();ctx.strokeStyle='#ffe6a2';ctx.lineWidth=7;ctx.stroke();ctx.font='bold 43px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#ffffff';ctx.fillText(name,256,65);const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false,transparent:true}));sprite.position.set(0,height,0);sprite.scale.set(2.75,.7,1);group.add(sprite)}
 for(const p of points){if(p.id!=='milo')marker(p)}npcName(saoDo,'⭐ SAO ĐỎ',3.05);npcTargets.push({point:saoPoint,group:saoDo});
 
