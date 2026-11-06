@@ -480,7 +480,9 @@ function installGameVoiceSettings(){
  btn.style.cssText='position:fixed;left:auto;right:12px;top:calc(env(safe-area-inset-top, 0px) + 235px);bottom:auto;transform:none;z-index:10040;padding:9px 12px;border:1px solid #b3dfc4;border-radius:18px;background:#174c45;color:white;font:600 13px system-ui;cursor:pointer';
  btn.onclick=openGameVoiceSettings;document.body.append(btn);
 }
-installGameVoiceSettings();
+// The right-side voice settings shortcut is redundant with the bottom-left voice control.
+// Keep the settings function available internally without rendering another button.
+// installGameVoiceSettings();
 function announceSaoCapture(name){
  const safeName=String(name||'Học sinh').trim().slice(0,32)||'Học sinh';
  const announcement=safeName+' - đã bị sao đỏ bắt được';
@@ -1251,6 +1253,10 @@ voiceButton.textContent='🎤 Giọng Việt';
 voiceButton.setAttribute('aria-label','Nhấn để nói lệnh tiếng Việt');
 voiceButton.style.cssText='position:fixed;left:22px;bottom:25px;z-index:10035;width:132px;min-height:66px;padding:10px;border-radius:22px;border:3px solid #d9f6ff;background:#18577f;color:white;font:800 16px system-ui;box-shadow:0 6px 18px #0005;touch-action:manipulation;cursor:pointer';
 document.body.append(voiceButton);
+// Move the actual student action menu button (not the legacy interaction button).
+const controlLayout=document.createElement('style');
+controlLayout.textContent='#studentActionButton{left:22px!important;right:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 99px)!important;width:132px!important;min-height:52px!important;padding:10px 7px!important;font-size:13px!important}#studentActionMenu{left:22px!important;right:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 155px)!important;max-width:min(310px,calc(100vw - 44px))!important}#action{display:none!important}@media(max-width:700px){#studentActionButton{left:22px!important;right:auto!important;bottom:calc(env(safe-area-inset-bottom,0px) + 99px)!important}}';
+document.head.append(controlLayout);
 // Stack the action button directly above the Vietnamese voice button.
 const actionButton=document.getElementById('action');
 actionButton.style.left='22px';
