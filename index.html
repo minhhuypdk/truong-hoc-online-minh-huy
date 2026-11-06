@@ -1321,6 +1321,12 @@ renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();orbitDistanc
 // Student emotes: reusable action registry; first action is a celebratory SIUU-style jump.
 const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6}};
 let studentAction=null;
+const studentActionProp=new THREE.Group();avatar.add(studentActionProp);
+const micStem=new THREE.Mesh(new THREE.CylinderGeometry(.055,.065,.58,10),new THREE.MeshStandardMaterial({color:'#283b50',metalness:.4,roughness:.35}));
+micStem.position.y=.1;studentActionProp.add(micStem);
+const micHead=new THREE.Mesh(new THREE.SphereGeometry(.12,12,10),new THREE.MeshStandardMaterial({color:'#c4d2dd',metalness:.55,roughness:.3}));
+micHead.position.y=.45;studentActionProp.add(micHead);
+studentActionProp.position.set(-.37,1.65,.4);studentActionProp.visible=false;
 // Local inventory uses the existing souvenir ledger; online gift delivery is not implemented.
 const actionInventoryKey='be-bum-action-inventory-v1';
 function actionStock(){
@@ -1337,7 +1343,7 @@ function actionOwnedChoices(type){
 }
 function startStudentAction(id,extra={}){
  if(!studentActions[id]||!schoolGateUnlocked||!welcome.hidden||saoChase||saoEncounterOpen||seatedBench||document.getElementById('modal').style.display==='flex')return;
- autoTarget=null;studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false,...extra};
+ autoTarget=null;studentActionProp.visible=id==='sing';studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false,...extra};
  const menu=document.getElementById('studentActionMenu');if(menu){menu.hidden=true;menu.style.display='none'};
  document.getElementById('tip').textContent=studentActions[id].label;
  if(id==='teacher')speakGameVietnamese('Ta là thầy Huy đây! Các em không được quậy phá! Sao đỏ! Em ghi tên học sinh này lại cho tôi!',{purpose:'roleplay'});
@@ -1390,7 +1396,7 @@ const norm=Math.max(1,Math.hypot(dx,dz)),vx=dx/norm*speed*dt,vz=dz/norm*speed*dt
 if(studentAction){
  const t=(performance.now()-studentAction.started)/1000;
  if(t>=studentActions[studentAction.id].duration){
-  studentAction=null;avatar.rotation.y=0;avatar.rotation.z=0;avatar.position.y=0;
+  studentAction=null;studentActionProp.visible=false;avatar.rotation.y=0;avatar.rotation.z=0;avatar.position.y=0;
   arms[0].rotation.x=0;arms[1].rotation.x=0;arms[0].rotation.z=0;arms[1].rotation.z=0;
   legs[0].rotation.x=0;legs[1].rotation.x=0;
  }else if(studentAction.id==='hiphop'){
