@@ -809,6 +809,13 @@ function syncFloorVisibility(){const stageButton=document.getElementById('viewSt
 const roomGeometryCache=new Map();
 function roomBox(w,h,d,x,y,z,c){const key=w+','+h+','+d;let geometry=roomGeometryCache.get(key);if(!geometry){geometry=new THREE.BoxGeometry(w,h,d);roomGeometryCache.set(key,geometry)}const m=new THREE.Mesh(geometry,mat(c));m.position.set(x,y,z);indoor.add(m);if(constructingFloor===0)floorMeshes[0].push(m);return m}
 constructingFloor=0;roomBox(56,.4,30,0,-.2,0,'#e9d5b2');roomBox(56,5,.3,0,2.5,-12,'#f1f4ff');roomBox(20,5,.25,0,3,-11.8,'#286457');roomBox(.3,5,30,-28,2.5,0,'#edf3fa');roomBox(.3,5,30,28,2.5,0,'#edf3fa');roomBox(48,5,.3,0,2.5,14.8,'#edf3fa');
+// Architectural depth: layered baseboards, pilasters, timber ceiling beams and inset ceiling lights.
+for(const x of [-27.6,27.6]){roomBox(.22,.34,29,x,.19,0,'#b8c9d7');roomBox(.22,.14,29,x,4.72,0,'#c5d8e5')}
+for(const z of [-11.6,14.45]){roomBox(55,.34,.2,0,.19,z,'#c7a983');roomBox(55,.15,.2,0,4.72,z,'#e6d3b3')}
+for(const z of [-10,-5,0,5,10]){roomBox(54,.22,.4,0,4.86,z,'#d7b58a');for(const x of [-18,0,18]){roomBox(3.6,.035,1.15,x,4.72,z,'#fff6d8')}}
+for(const z of [-9,-2,5,12])for(const x of [-27.55,27.55])roomBox(.2,4.2,.3,x,2.35,z,'#c3d7e0');
+// Floor planks provide visual scale and perspective without raising collision surfaces.
+for(let z=-11;z<=14;z+=1.45)roomBox(55,.015,.035,0,.025,z,'#d4b994');
 // Removed floating divider panels that intersect student desks; keep classroom sightlines clear.
 roomBox(3,1.4,.6,0,.75,-10,'#d6a379');roomBox(3,.12,.7,0,1.5,-10,'#fff0d1');
 // Warm classroom decoration: window curtains, wall art, plants, reading corner and colorful rugs.
@@ -934,6 +941,30 @@ roomBox(14.3,.13,.25,0,1.48,-11.42,'#d2b47d');
 for(const x of [-23,-11,0,11,23]){roomBox(3.4,.11,1.05,x,4.78,-2,'#d9e0df');roomBox(3.4,.11,1.05,x,4.78,6,'#d9e0df')}
 for(const x of [-24,24]){for(const z of [-7,0,7]){roomBox(.1,2.1,2.2,x,2.7,z,'#d1e5e8');roomBox(.12,.12,2.25,x,3.75,z,'#f7f0df')}}
 
+// Detailed 3D furnishing: shallow wall cabinets, bookcase cubbies, teacher storage and window ledges.
+// All details remain near walls; desk rows, interaction points and central sightlines stay clear.
+for(const x of [-25.6,25.6]){
+ for(const z of [-8,0,8]){
+  roomBox(1.4,.12,3.2,x,1.08,z,'#d7aa76');
+  roomBox(1.4,.12,3.2,x,2.6,z,'#d7aa76');
+  roomBox(.12,1.55,3.2,x,1.85,z,'#c18f61');
+  for(const dz of [-1.05,0,1.05])roomBox(.08,1.2,.09,x,1.88,z+dz,'#fff3d7');
+ }
+}
+for(const z of [-9,-6,-3,0,3,6,9]){
+ roomBox(.55,.08,1.2,-27.1,1.5,z,'#e7c79b');
+ roomBox(.55,.08,1.2,27.1,1.5,z,'#e7c79b');
+}
+for(const x of [12,14,16,18]){
+ roomBox(1.9,.15,1.35,x,.38,-10.5,'#ad815f');
+ roomBox(1.9,.15,1.35,x,1.25,-10.5,'#ad815f');
+ roomBox(1.9,.15,1.35,x,2.12,-10.5,'#ad815f');
+ for(const z of [-10.85,-10.45,-10.05]){
+  const book=roomBox(.2,.52,.28,x-.45,1.62,z,['#e88f82','#83b9db','#f1cf73'][Math.round((z+10.85)/.4)]);
+  book.rotation.z=.04;
+ }
+}
+for(const x of [-24,-12,0,12,24])roomBox(1.8,.1,.7,x,4.6,-9.9,'#e4cfac');
 const classroomTeacher=new THREE.Group();classroomTeacher.position.set(0,.32,-9.5);indoor.add(classroomTeacher);makeTeacher(classroomTeacher);floorMeshes[0].push(classroomTeacher);const indoorPoints=[{id:'exit',x:-18,z:9,label:'🚪 Cửa ra sân trường'},{id:'teacher',x:0,z:-7.5,label:'👩‍🏫 Cô Nhi · 10 câu tăng tốc'},{id:'library',x:12,z:-10,label:'📚 Góc thư viện'},...deskPositions.map((p,i)=>({id:'desk'+i,x:p.x,z:p.z+2.7,label:'🪑 Bàn học '+(i+1)}))];
 for(const x of [12,14,16])for(let h=0;h<3;h++)roomBox(1.8,.7,.8,x,.6+h*.8,-10,['#df8d8a','#82b5d8','#f0d279'][h]);
 constructingFloor=-1;syncFloorVisibility();
