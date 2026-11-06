@@ -1909,7 +1909,8 @@ function sharedMissionHandle(id,data){
   return true;
  }
  if(data.t==='mission-won'&&!bumNet.host&&data.mission?.id===sharedMission?.id){sharedMissionWon(sharedMission);return true}
- return data.t==='mission-sync'||data.t==='mission-claim'||data.t==='mission-won';
+ if(data.t==='mission-finished'&&bumNet.host&&sharedMission?.id===data.id&&sharedMissionClaimed){sharedMission=null;sharedMissionClaimed=false;bumBroadcast({t:'mission-sync',mission:null,claimed:false});return true}
+ return data.t==='mission-sync'||data.t==='mission-claim'||data.t==='mission-won'||data.t==='mission-finished';
 }
 function sharedMissionWon(mission){
  if(!mission)return;
