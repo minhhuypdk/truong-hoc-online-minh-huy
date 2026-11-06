@@ -629,37 +629,37 @@ const deskPositions=[];const deskLabels=[];const deskQuestions=[
 {q:'Which word means cảm ơn?',a:['Sorry','Hello','Thank you'],correct:2},
 {q:'What comes after 19?',a:['18','21','20'],correct:2},
 {q:'Which shape has three sides?',a:['Square','Triangle','Circle'],correct:1}];
-let claimedDesk=null;try{const n=Number(localStorage.getItem('be-bum-classroom-desk'));if(Number.isInteger(n)&&n>=0&&n<30)claimedDesk=n}catch{}
+let claimedDesk=null;try{const n=Number(localStorage.getItem('be-bum-classroom-desk'));if(Number.isInteger(n)&&n>=0&&n<20)claimedDesk=n}catch{}
 function deskNameSprite(name,number){const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=256;const ctx=canvas.getContext('2d');ctx.fillStyle='#fff8df';ctx.fillRect(0,0,1024,256);ctx.fillStyle='#205b74';ctx.font='bold 105px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('BÀN '+number+' · '+name.slice(0,20),512,128,980);const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(3.6,.9),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));m.rotation.x=-Math.PI/2;return m}
-// Classroom seating chart: 30 seats, persisted locally until online multiplayer is configured.
+// Classroom seating chart: 20 enlarged desks, 4 columns x 5 rows; preserve first 20 legacy seat IDs.
 let seatingStorageKey='be-bum-classroom-roster-v1';
-let seatRoster=Array(30).fill(null);
-try{const saved=JSON.parse(localStorage.getItem(seatingStorageKey)||'null');if(Array.isArray(saved))seatRoster=saved.slice(0,30).concat(Array(30).fill(null)).slice(0,30).map(v=>typeof v==='string'?v.slice(0,24):null)}catch{}
+let seatRoster=Array(20).fill(null);
+try{const saved=JSON.parse(localStorage.getItem(seatingStorageKey)||'null');if(Array.isArray(saved))seatRoster=saved.slice(0,20).concat(Array(20).fill(null)).slice(0,20).map(v=>typeof v==='string'?v.slice(0,24):null)}catch{}
 if(claimedDesk!==null){seatRoster[claimedDesk]=appearance.name}
 const ownerBoard=new THREE.Group();ownerBoard.position.set(0,3.05,-11.46);indoor.add(ownerBoard);floorMeshes[0].push(ownerBoard);
 const sayings=[['Có công mài sắt, có ngày nên kim.','Kiên trì sẽ thành công.'],['Học thầy không tày học bạn.','Học hỏi từ bạn bè mỗi ngày.'],['Đi một ngày đàng, học một sàng khôn.','Khám phá để trưởng thành.'],['Tiên học lễ, hậu học văn.','Lễ phép trước, học tập sau.'],['Lá lành đùm lá rách.','Biết yêu thương và giúp đỡ.'],['Uống nước nhớ nguồn.','Luôn biết ơn người giúp mình.'],['Có chí thì nên.','Cố gắng không bỏ cuộc.'],['Ăn quả nhớ kẻ trồng cây.','Biết ơn công sức của mọi người.']];let currentSaying=sayings[0];
 function updateOwnerBoard(){while(ownerBoard.children.length){const m=ownerBoard.children[0];ownerBoard.remove(m);m.geometry.dispose();m.material.map?.dispose();m.material.dispose()}const c=document.createElement('canvas');c.width=1536;c.height=512;const ctx=c.getContext('2d');ctx.fillStyle='#194d3c';ctx.fillRect(0,0,1536,512);ctx.strokeStyle='#f4e8bc';ctx.lineWidth=12;ctx.strokeRect(12,12,1512,488);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff5ca';ctx.font='bold 60px system-ui';ctx.fillText('MỖI NGÀY MỘT ĐIỀU HAY',768,85,1350);ctx.font='bold 70px system-ui';ctx.fillStyle='#fff';const words=currentSaying[0].split(' '),lines=[];let line='';for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>1280&&line){lines.push(line);line=word}else line=test}if(line)lines.push(line);lines.forEach((v,i)=>ctx.fillText(v,768,225-(lines.length-1)*48+i*96,1370));ctx.font='italic 44px system-ui';ctx.fillStyle='#b9e5cb';ctx.fillText(currentSaying[1],768,445,1350);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;ownerBoard.add(new THREE.Mesh(new THREE.PlaneGeometry(19.5,6.6),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})))}
 function refreshSeatTicker(){const t=document.getElementById('seatTicker');if(!t)return;t.hidden=floor!==0;document.getElementById('seatTickerText').textContent=claimedDesk===null?'🪑 Em chưa chọn bàn':'🪑 '+appearance.name+' · Bàn số '+(claimedDesk+1)}
 function updateDeskOwnership(){if(claimedDesk!==null&&seatRoster[claimedDesk]!==appearance.name){seatRoster[claimedDesk]=appearance.name;localStorage.setItem(seatingStorageKey,JSON.stringify(seatRoster))}for(let i=0;i<deskLabels.length;i++){const old=deskLabels[i];if(old){indoor.remove(old);old.material.map.dispose();old.material.dispose();old.geometry.dispose()}deskLabels[i]=null}if(claimedDesk!==null){const p=deskPositions[claimedDesk],label=deskNameSprite(appearance.name,claimedDesk+1);label.position.set(p.x,1.42,p.z);indoor.add(label);deskLabels[claimedDesk]=label;label.visible=floor===0}updateOwnerBoard();refreshSeatTicker()}
-// Five gently stepped rows, thirty fixed desk positions; retain existing seat IDs and collision logic.
+// Five rows of four enlarged desks; maintain aisle spacing and existing collision/interactions.
 const hallWood=new THREE.MeshStandardMaterial({color:'#bd8a55',roughness:.62,metalness:.02});
 const hallSeat=new THREE.MeshStandardMaterial({color:'#355c7a',roughness:.78});
 for(const z of [-7,-3,1,5,9]){const tier=(z+7)/4,step=tier*.26;
 roomBox(49,.22,3.8,0,.08+step,z+1.1,'#c5a989');
 roomBox(49,.22,.15,0,.12+step,z+2.94,'#e6d5bd');
-for(const x of [-19,-11,-3,5,13,21]){
+for(const x of [-19,-6,7,20]){
 const i=deskPositions.length;deskPositions.push({x,z});const y=1.12+step;
-roomBox(6.5,.18,1.65,x,y,z,'#f5c57b');
-for(const dx of [-2.8,2.8])roomBox(.16,y-.2,.16,x+dx,(y-.2)/2,z,'#967251');
-roomBox(5.8,.55,.45,x,.5+step,z+1.4,'#78a8d5');
+roomBox(8.1,.18,2.05,x,y,z,'#f5c57b');
+for(const dx of [-3.65,3.65])roomBox(.18,y-.2,.18,x+dx,(y-.2)/2,z,'#967251');
+roomBox(7.3,.55,.45,x,.5+step,z+1.65,'#78a8d5');
 // Rounded wood lip and polished desk surface, open workbook and a small pencil holder.
-const top=new THREE.Mesh(new THREE.BoxGeometry(6.3,.065,1.5),hallWood);top.position.set(x,y+.13,z);indoor.add(top);floorMeshes[0].push(top);
-roomBox(6.35,.09,.09,x,y+.16,z+.77,'#e8c796');
+const top=new THREE.Mesh(new THREE.BoxGeometry(7.9,.065,1.9),hallWood);top.position.set(x,y+.13,z);indoor.add(top);floorMeshes[0].push(top);
+roomBox(7.95,.09,.09,x,y+.16,z+.97,'#e8c796');
 for(const dx of [-.45,.45]){const page=roomBox(.84,.025,.65,x+dx,y+.19,z-.13,'#fff9e9');page.rotation.y=dx>0?-.035:.035}
 roomBox(.08,.03,.53,x,y+.215,z-.13,'#b3c6d6');
 roomBox(.09,.09,.66,x+1.25,y+.21,z-.2,'#f2c96b');
 roomBox(.45,.52,.5,x,.66+step,z+1.52,'#4b7193');
-roomBox(5.55,.08,.18,x,.43+step,z+1.62,'#b6d0df');
+roomBox(7.05,.08,.18,x,.43+step,z+1.82,'#b6d0df');
 }}
 roomBox(20,.45,3.6,0,.22,-10,'#8c6a8f');roomBox(18,.15,2.8,0,.52,-10,'#e7cda1');
 // Raised teaching platform: podium, front steps, LED presentation display and ceiling acoustic panels.
@@ -672,18 +672,61 @@ roomBox(14.3,.13,.25,0,1.48,-11.42,'#d2b47d');
 for(const x of [-23,-11,0,11,23]){roomBox(3.4,.11,1.05,x,4.78,-2,'#d9e0df');roomBox(3.4,.11,1.05,x,4.78,6,'#d9e0df')}
 for(const x of [-24,24]){for(const z of [-7,0,7]){roomBox(.1,2.1,2.2,x,2.7,z,'#d1e5e8');roomBox(.12,.12,2.25,x,3.75,z,'#f7f0df')}}
 
-const classroomTeacher=new THREE.Group();classroomTeacher.position.set(-8,0,-9.5);indoor.add(classroomTeacher);makeTeacher(classroomTeacher);floorMeshes[0].push(classroomTeacher);const indoorPoints=[{id:'exit',x:-18,z:9,label:'🚪 Cửa ra sân trường'},{id:'teacher',x:-8,z:-8.4,label:'👩‍🏫 Giáo viên lớp học'},{id:'library',x:12,z:-10,label:'📚 Góc thư viện'},...deskPositions.map((p,i)=>({id:'desk'+i,x:p.x,z:p.z+2.4,label:'🪑 Bàn học '+(i+1)}))];
+const classroomTeacher=new THREE.Group();classroomTeacher.position.set(-8,0,-9.5);indoor.add(classroomTeacher);makeTeacher(classroomTeacher);floorMeshes[0].push(classroomTeacher);const indoorPoints=[{id:'exit',x:-18,z:9,label:'🚪 Cửa ra sân trường'},{id:'teacher',x:-8,z:-8.4,label:'👩‍🏫 Giáo viên lớp học'},{id:'library',x:12,z:-10,label:'📚 Góc thư viện'},...deskPositions.map((p,i)=>({id:'desk'+i,x:p.x,z:p.z+2.7,label:'🪑 Bàn học '+(i+1)}))];
 for(const x of [12,14,16])for(let h=0;h<3;h++)roomBox(1.8,.7,.8,x,.6+h*.8,-10,['#df8d8a','#82b5d8','#f0d279'][h]);
 constructingFloor=-1;syncFloorVisibility();
 function showStudentProfile(i){const name=seatRoster[i];if(!name)return;dialog('👤 Hồ sơ học sinh',name+' · Bàn '+(i+1)+'. Chỉ hiển thị tên và số bàn. Kết bạn trực tuyến chưa được kích hoạt.',[['💌 Gửi lời mời kết bạn',()=>dialog('🔒 Chưa khả dụng','Cần tài khoản học sinh, xác nhận kết bạn và đồng bộ trực tuyến để gửi lời mời an toàn.')],['Đóng',()=>{}]])}
 function claimDesk(i){if(seatRoster[i]&&claimedDesk!==i){dialog('🪑 Bàn đã có người','Bàn '+(i+1)+' thuộc về '+seatRoster[i]+'.',[['👤 Xem hồ sơ',()=>showStudentProfile(i)],['Đóng',()=>{}]]);return}const q=deskQuestions[i%deskQuestions.length];dialog('🪑 Bàn số '+(i+1),q.q,q.a.map((answer,k)=>[answer,()=>{if(k===q.correct){if(seatRoster[i]&&claimedDesk!==i){dialog('🪑 Bàn đã có người','Hãy chọn bàn khác.');return}if(claimedDesk!==null)seatRoster[claimedDesk]=null;claimedDesk=i;seatRoster[i]=appearance.name;localStorage.setItem(seatingStorageKey,JSON.stringify(seatRoster));localStorage.setItem(activeDeskStorageKey(),String(i));updateDeskOwnership();if(!state.lessonDone){state.lessonDone=true;save()}dialog('🎉 Chọn chỗ thành công',appearance.name+' đã trả lời đúng! Tên em được ghi trên bàn '+(i+1)+'. Em có thể đổi bàn bằng cách trả lời đúng câu hỏi ở bàn khác.')}else dialog('❌ Chưa đúng','Hãy thử trả lời lại câu hỏi ở bàn '+(i+1)+'.',[['Thử lại',()=>claimDesk(i)]])}]))}
 const praiseQuestions=[{q:'What is 8 + 7?',a:['14','15','16'],correct:1},{q:'Which sentence is polite?',a:['Give me that!','May I have it, please?','Go away!'],correct:1},{q:'What is the opposite of happy?',a:['Sad','Fast','Big'],correct:0},{q:'Which planet do we live on?',a:['Mars','Earth','Venus'],correct:1},{q:'How many sides does a square have?',a:['3','4','5'],correct:1}];function teacherChallenge(){const q=praiseQuestions[Math.floor(Math.random()*praiseQuestions.length)];dialog('👩‍🏫 Cô giáo hỏi em',q.q,q.a.map((answer,i)=>[answer,()=>{if(i===q.correct){const p=['🌟 Em thật xuất sắc!','👏 Cô khen em chăm chỉ!','🏆 Em trả lời rất thông minh!'];dialog('🎉 Lời khen của cô',p[Math.floor(Math.random()*p.length)],[['Câu tiếp theo',teacherChallenge],['Cảm ơn cô',()=>{}]])}else dialog('👩‍🏫 Cô động viên','Chưa đúng rồi, em hãy thử lại nhé!',[['Thử lại',teacherChallenge]])}]))}
+/* Classroom 2.1: subject-specific guided activities; no premature Xu/conduct rewards. */
+const classroomSubjects={
+ math:{name:'🔢 Toán',teacher:'Cô giáo Toán',questions:[
+ {q:'8 + 5 = ?',a:['12','13','14'],correct:1},
+ {q:'17 - 9 = ?',a:['7','8','9'],correct:1},
+ {q:'Hình nào có 3 cạnh?',a:['Hình vuông','Hình tam giác','Hình tròn'],correct:1}]},
+ english:{name:'🇺🇸 Tiếng Anh',teacher:'Cô giáo Tiếng Anh',questions:[
+ {q:'Which word means “quyển sách”?',a:['Book','Bag','Ball'],correct:0},
+ {q:'She ___ happy.',a:['am','is','are'],correct:1},
+ {q:'What do you say when someone helps you?',a:['Thank you!','Go away!','Good night!'],correct:0}]},
+ discovery:{name:'🌱 Khám phá',teacher:'Thầy giáo Khám phá',questions:[
+ {q:'Bộ phận nào giúp cây hút nước?',a:['Rễ','Hoa','Lá'],correct:0},
+ {q:'Khi qua đường, em nên làm gì?',a:['Chạy thật nhanh','Quan sát và đi đúng nơi quy định','Nhắm mắt đi'],correct:1},
+ {q:'Vứt rác đúng nơi giúp điều gì?',a:['Giữ môi trường sạch','Làm sân trường bẩn','Lãng phí nước'],correct:0}]}
+};
+function openClassroomTeacher(){
+ dialog('👩‍🏫 Chọn tiết học','Em muốn học môn nào hôm nay? Mỗi tiết có 3 câu hỏi và có thể thử lại.',[
+ ['🔢 Toán · Cô giáo Toán',()=>runClassroomSubject('math')],
+ ['🇺🇸 Tiếng Anh · Cô giáo Tiếng Anh',()=>runClassroomSubject('english')],
+ ['🌱 Khám phá · Thầy giáo Khám phá',()=>runClassroomSubject('discovery')],
+ ['💬 Trò chuyện với giáo viên',teacherChallenge]
+ ]);
+}
+function runClassroomSubject(id){
+ const subject=classroomSubjects[id];if(!subject)return;
+ const key='be-bum-subject-completed-v1-'+id;
+ let completed=false;try{completed=localStorage.getItem(key)==='yes'}catch{}
+ let index=0;
+ function question(){
+  if(index>=subject.questions.length){
+   if(!completed){try{localStorage.setItem(key,'yes')}catch{}}
+   if(!state.lessonDone){state.lessonDone=true;save()}
+   dialog('🎓 Hoàn thành '+subject.name,'Giỏi lắm! Em đã hoàn thành tiết học với '+subject.teacher+'. '+(completed?'Đây là lượt ôn tập.':'Thành tích đã được lưu.')+' Không có hình phạt khi trả lời sai.',[['📚 Chọn môn khác',openClassroomTeacher]]);
+   return;
+  }
+  const q=subject.questions[index];
+  dialog(subject.name+' · Câu '+(index+1)+'/'+subject.questions.length,q.q,q.a.map((answer,i)=>[answer,()=>{
+   if(i===q.correct){index++;question()}
+   else dialog('🌟 Cùng thử lại nhé',subject.teacher+' sẽ giúp em suy nghĩ thêm. Trả lời sai không bị trừ điểm.',[['🔄 Thử lại',question],['📚 Đổi môn',openClassroomTeacher]]);
+  }]));
+ }
+ question();
+}
 function classroomLesson(){if(state.lessonDone){dialog('👩‍🏫 Giáo viên','Em đã hoàn thành tiết học và nhận 50 XP.');return}
 const questions=[{q:'What is the opposite of “big”?',a:['Small','Tall','Long'],correct:0},{q:'15 − 7 = ?',a:['6','8','9'],correct:1},{q:'Which sentence is correct?',a:['She are happy.','She is happy.','She am happy.'],correct:1}];let index=0;
 function next(){if(index===questions.length){state.lessonDone=true;save();dialog('🎓 Hoàn thành tiết học','Em trả lời đúng 3 câu và nhận thêm 50 XP!');return}const q=questions[index];dialog('👩‍🏫 Bài học '+(index+1)+'/3',q.q,q.a.map((a,i)=>[a,()=>{if(i===q.correct){index++;next()}else dialog('Thử lại nhé','Em hãy suy nghĩ và chọn lại.',[['Thử lại',next]])}]))}next()}
 function libraryLesson(){if(state.libraryDone){dialog('📚 Thư viện','Em đã đọc xong và nhận 40 XP.');return}dialog('📖 Truyện ngắn','Lily has a red bag. She puts two books in it. She goes to school with her friend Ben.',[['Đọc xong · Trả lời',()=>dialog('📚 Reading','What color is Lily’s bag?',[['Red',()=>dialog('📚 Reading','How many books does Lily have?',[['Two',()=>{state.libraryDone=true;save();dialog('🌟 Đọc sách giỏi','Em nhận 40 XP!')}],['Three',()=>dialog('Thử lại','Hãy đọc lại truyện nhé.',[['Đọc lại',libraryLesson]])]])],['Blue',()=>dialog('Thử lại','Hãy đọc lại truyện nhé.',[['Đọc lại',libraryLesson]])]])]])}
 
-function activateClassroom(f){if(f!==0)return;seatingStorageKey=f===0?'be-bum-classroom-roster-v1':'be-bum-classroom-roster-'+(f===6?'B':'C')+'-v1';const deskKey=f===0?'be-bum-classroom-desk':'be-bum-classroom-desk-'+(f===6?'B':'C');const raw=localStorage.getItem(deskKey);claimedDesk=raw===null?null:Number(raw);if(!Number.isInteger(claimedDesk)||claimedDesk<0||claimedDesk>=30)claimedDesk=null;try{const saved=JSON.parse(localStorage.getItem(seatingStorageKey)||'null');seatRoster=Array.isArray(saved)?saved.slice(0,30).concat(Array(30).fill(null)).slice(0,30):Array(30).fill(null)}catch{seatRoster=Array(30).fill(null)}}
+function activateClassroom(f){if(f!==0)return;seatingStorageKey=f===0?'be-bum-classroom-roster-v1':'be-bum-classroom-roster-'+(f===6?'B':'C')+'-v1';const deskKey=f===0?'be-bum-classroom-desk':'be-bum-classroom-desk-'+(f===6?'B':'C');const raw=localStorage.getItem(deskKey);claimedDesk=raw===null?null:Number(raw);if(!Number.isInteger(claimedDesk)||claimedDesk<0||claimedDesk>=20)claimedDesk=null;try{const saved=JSON.parse(localStorage.getItem(seatingStorageKey)||'null');seatRoster=Array.isArray(saved)?saved.slice(0,20).concat(Array(20).fill(null)).slice(0,20):Array(20).fill(null)}catch{seatRoster=Array(20).fill(null)}}
 function activeDeskStorageKey(){return floor===6?'be-bum-classroom-desk-B':floor===7?'be-bum-classroom-desk-C':'be-bum-classroom-desk'}
 function travel(f){standFromBench();autoTarget=null;shotActive=false;if(typeof throwButton!=='undefined')throwButton.disabled=false;floor=f;lectureStageView=false;activateClassroom(f);syncFloorVisibility();player.position.set(f<0?5:f===2?170:f===3?220:f===4?270:f===5?320:120,0,f<0?-12:9);orbitYaw=0;orbitPitch=f<0?.48:.88;orbitDistance=f<0?23:29;camera.position.set(player.position.x,player.position.y+13,player.position.z+17);near=null;if(f===0){currentSaying=sayings[Math.floor(Math.random()*sayings.length)];updateDeskOwnership()}else document.getElementById('seatTicker').hidden=true;if(f===2)updateSportsHud();if(f===3||f===4||f===5)updateFunctionalRoomHud();savePlayerLocation()}
 let seatedBench=null;document.getElementById('standUpBtn').addEventListener('click',standFromBench);function standFromBench(){if(!seatedBench)return;const p=[...benchPoints,...fountainSeats].find(b=>b.id===seatedBench);if(p)player.position.set(p.x,0,p.z);seatedBench=null;avatar.position.y=0;avatar.rotation.x=0;legs.forEach(l=>l.rotation.x=0);document.getElementById('standUpBtn').hidden=true}function sitLibrarySeat(p){standFromBench();player.position.set(p.x+270,0,p.z);avatar.position.y=-.48;avatar.rotation.x=-.1;legs.forEach(l=>l.rotation.x=-1.1);seatedBench='library';document.getElementById('standUpBtn').hidden=false;document.getElementById('tip').textContent='📚 Đang ngồi đọc sách'}function sitOnBench(p){if(seatedBench===p.id){standFromBench();return}standFromBench();seatedBench=p.id;player.position.set(p.x,0,p.seatZ);player.rotation.y=0;avatar.position.y=-.52;avatar.rotation.x=-.13;legs.forEach(l=>l.rotation.x=-1.15);document.getElementById('standUpBtn').hidden=false;document.getElementById('tip').textContent='🪑 Đang ngồi · Di chuyển để đứng dậy';document.getElementById('tip').textContent='🪑 Em đang ngồi · Bấm ĐỨNG LÊN để đi tiếp'}
@@ -777,7 +820,7 @@ if(near.id.startsWith('fountainSeat')){dialog('⛲ Đài phun nước','Đài ph
 if(near.id==='exit'){dialog('🚪 Cửa ra lớp học','Em muốn ra sân trường chứ?',[['🚶 Ra sân trường',()=>travel(-1)],['Ở lại lớp',()=>{}]]);return}
 if(near.id==='lift'){travel(0);return}
 if(near.id.startsWith('desk')){claimDesk(Number(near.id.slice(4)));return}if(near.id==='quiz'){quiz();return}
-if(near.id==='teacher'){teacherChallenge();return}
+if(near.id==='teacher'){openClassroomTeacher();return}
 if(near.id==='library'){libraryLesson();return}
 if(near.id==='an'){if(!state.complete){dialog('👩‍🏫 Cô Hoàng','Em hãy hoàn thành nhiệm vụ của thầy Huy trước nhé.');return}
 if(!state.anStarted){dialog('👩‍🏫 Cô Hoàng','Chào em! Hãy tìm bông hoa ở sân phía Tây và cây tri thức gần hàng cây nhé.',[['Nhận nhiệm vụ',()=>{state.anStarted=true;save()}]])}else dialog('👩‍🏫 Cô Hoàng',state.anComplete?'Em đã hoàn thành bài học quan sát thiên nhiên!':'Tìm bông hoa và cây tri thức nhé.');return}
