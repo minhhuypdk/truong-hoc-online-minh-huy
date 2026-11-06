@@ -728,8 +728,33 @@ resetStudentButton.style.cssText='position:fixed;right:12px;top:calc(env(safe-ar
 document.body.append(resetStudentButton);
 resetStudentButton.textContent='↻ Chơi lại từ đầu';
 resetStudentButton.setAttribute('aria-label','Xóa toàn bộ tiến trình và chơi lại từ đầu');
-resetStudentButton.onclick=()=>{
- if(!confirm('CHƠI LẠI TỪ ĐẦU?\\n\\nTất cả XP, cấp độ, nhiệm vụ, lượt quay, túi quà, vật phẩm, thành tích, tên và ngoại hình nhân vật trên thiết bị này sẽ bị xóa.\\n\\nSau khi xóa sẽ trở về Cấp 1 – 0 XP. Không thể hoàn tác.\\n\\nBạn có chắc chắn muốn xóa toàn bộ tiến trình?'))return;
+const resetModalStyle=document.createElement('style');
+resetModalStyle.textContent=`
+#bumResetModal[hidden]{display:none!important}
+#bumResetModal{position:fixed;inset:0;z-index:99999;background:rgba(12,36,65,.78);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+#bumResetCard{width:min(440px,100%);max-height:calc(100dvh - 32px);overflow:auto;box-sizing:border-box;text-align:center;border:5px solid #fff;border-radius:28px;background:linear-gradient(180deg,#e4f6ff 0%,#fff9e9 100%);padding:clamp(15px,3vw,25px);color:#173d60;box-shadow:0 18px 55px #0005;font-family:system-ui,sans-serif}
+#bumResetCard h2{font-size:clamp(21px,5vw,29px);margin:4px 0 8px}
+#bumResetCard .resetMascot{font-size:clamp(40px,10vw,65px);line-height:1.1}
+#bumResetCard .resetSummary{font-size:clamp(14px,3.6vw,18px);line-height:1.5;margin:8px 0}
+#bumResetCard .resetItems{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+#bumResetCard .resetItems span{background:white;border:2px solid #c7e4fa;border-radius:13px;padding:9px 4px;font-size:clamp(12px,3.2vw,15px);font-weight:750}
+#bumResetCard .resetWarning{font-size:13px;font-weight:750;color:#a43b30;margin:9px 0}
+#bumResetCard .resetButtons{display:flex;gap:9px;margin-top:13px}
+#bumResetCard button{flex:1;border:0;border-radius:15px;padding:13px 7px;font-size:clamp(13px,3.5vw,17px);font-weight:850;cursor:pointer;min-height:51px}
+#bumResetCancel{background:#39b978;color:white}
+#bumResetConfirm{background:#e75c56;color:white}
+`;
+document.head.append(resetModalStyle);
+const resetModal=document.createElement('div');resetModal.id='bumResetModal';resetModal.hidden=true;
+resetModal.setAttribute('role','dialog');resetModal.setAttribute('aria-modal','true');resetModal.setAttribute('aria-labelledby','bumResetTitle');
+resetModal.innerHTML='<div id="bumResetCard"><div class="resetMascot">🏫🎒✨</div><h2 id="bumResetTitle">Chơi lại từ đầu?</h2><p class="resetSummary">Bé sẽ tạo học sinh mới và bắt đầu hành trình mới từ <strong>Cấp 1 · 0 XP</strong>!</p><div class="resetItems"><span>⭐ XP về 0</span><span>🎁 Túi quà trống</span><span>📚 Làm lại nhiệm vụ</span><span>👦 Tạo nhân vật mới</span></div><p class="resetWarning">⚠️ Thành tích cũ sẽ mất và không lấy lại được nhé!</p><div class="resetButtons"><button type="button" id="bumResetCancel">🟢 Chơi tiếp</button><button type="button" id="bumResetConfirm">🔄 Chơi lại từ đầu</button></div></div>';
+document.body.append(resetModal);
+resetStudentButton.onclick=()=>{resetModal.hidden=false;document.getElementById('bumResetCancel').focus()};
+document.getElementById('bumResetCancel').onclick=()=>{resetModal.hidden=true};
+resetModal.addEventListener('click',event=>{if(event.target===resetModal)resetModal.hidden=true});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!resetModal.hidden)resetModal.hidden=true});
+document.getElementById('bumResetConfirm').onclick=()=>{
+ document.getElementById('bumResetConfirm').disabled=true;
  try{
   // Reset only school-game data; preserve unrelated website/browser settings.
   const keys=[];
