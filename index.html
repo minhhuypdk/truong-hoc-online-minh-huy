@@ -787,7 +787,10 @@ function readClassroomSaying(){
   const utterance=new SpeechSynthesisUtterance(spoken);
   utterance.lang='vi-VN';utterance.rate=.88;utterance.pitch=1;utterance.volume=1;
   const voices=window.speechSynthesis.getVoices();
-  const vi=voices.find(v=>v.lang.toLowerCase()==='vi-vn')||voices.find(v=>v.lang.toLowerCase().startsWith('vi'));
+  // Prefer explicitly southern/Saigon-accent Vietnamese voices when available.
+  const vietnamese=voices.filter(v=>v.lang.toLowerCase().startsWith('vi'));
+  const southern=/miền nam|mien nam|southern|south vietnam|sài gòn|sai gon|saigon|ho chi minh|hồ chí minh|hcmc|nam bộ|nam bo/i;
+  const vi=vietnamese.find(v=>southern.test(v.name))||vietnamese.find(v=>v.lang.toLowerCase()==='vi-vn')||vietnamese[0];
   if(vi)utterance.voice=vi;
   classroomSpeech=utterance;window.speechSynthesis.speak(utterance);
  }catch(e){console.warn('Không thể đọc câu tục ngữ',e)}
