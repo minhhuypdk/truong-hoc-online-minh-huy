@@ -763,7 +763,33 @@ function checkLevelWheel(){
 }
 const wheelStyle=document.createElement('style');
 wheelStyle.textContent='#levelWheelButton{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:30;background:#ffca64;color:#163b5e;border:3px solid white;border-radius:18px;padding:10px 14px;font-weight:900;box-shadow:0 5px 15px #0003;cursor:pointer}#wheelOverlay{position:fixed;inset:0;z-index:120;background:#071f3ac9;display:flex;align-items:center;justify-content:center;padding:15px}#wheelOverlay[hidden]{display:none}#wheelCard{width:min(420px,96vw);max-height:90dvh;overflow:auto;background:#fffaf0;border:4px solid white;border-radius:24px;padding:17px;text-align:center;color:#173d5e;box-shadow:0 16px 50px #0006}#wheelDisc{width:min(275px,75vw);aspect-ratio:1;margin:14px auto;border-radius:50%;border:9px solid #ffd46c;background:conic-gradient(#f5a6b9 0 45deg,#9ed4ff 45deg 90deg,#ffe49b 90deg 135deg,#b8e8bc 135deg 180deg,#d7b6f7 180deg 225deg,#ffc69d 225deg 270deg,#a3e8e5 270deg 315deg,#f6c5e7 315deg 360deg);display:grid;place-items:center;transition:transform 3.4s cubic-bezier(.15,.78,.12,1);box-shadow:0 6px 20px #0003}#wheelDisc span{font-size:54px;background:#ffffffd9;border-radius:50%;width:90px;height:90px;display:grid;place-items:center}#wheelCard button{border:0;border-radius:13px;background:#ffca64;color:#163b5e;font-size:16px;font-weight:850;padding:12px 18px;margin:5px;cursor:pointer}';
+wheelStyle.textContent+=`
+#wheelOverlay{padding:8px;box-sizing:border-box}
+#wheelCard{box-sizing:border-box;width:min(500px,98vw);height:min(700px,calc(100dvh - 16px));max-height:calc(100dvh - 16px);overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:clamp(3px,1vh,9px);padding:clamp(8px,2vh,16px)}
+#wheelCard h2{font-size:clamp(17px,3.5vh,26px);margin:0}
+#wheelCard h3{font-size:clamp(14px,2.5vh,20px);margin:0}
+#wheelCard p{font-size:clamp(12px,2vh,16px);margin:0}
+#wheelDisc{flex:0 1 auto;width:min(265px,45dvh,68vw);height:min(265px,45dvh,68vw);margin:3px auto;border-width:6px}
+#wheelDisc span{width:clamp(42px,10vh,75px);height:clamp(42px,10vh,75px);font-size:clamp(25px,5vh,43px)}
+#wheelCard button{font-size:clamp(12px,2vh,16px);padding:clamp(6px,1.2vh,11px) 12px;margin:2px}
+#wheelInventory{font-size:clamp(11px,1.8vh,14px);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;max-height:4.1em}
+#creator{z-index:110!important}
+#creator .creator-card{position:relative}
+#creatorQuickClose{position:fixed;top:calc(env(safe-area-inset-top,0px) + 12px);right:calc(env(safe-area-inset-right,0px) + 12px);z-index:250;background:#173e63;color:white;border:3px solid white;border-radius:50%;width:48px;height:48px;font-size:25px;font-weight:900;box-shadow:0 4px 12px #0004;cursor:pointer}
+#creatorQuickClose[hidden]{display:none}
+`;
 document.head.append(wheelStyle);
+const creatorQuickClose=document.createElement('button');
+creatorQuickClose.id='creatorQuickClose';creatorQuickClose.type='button';creatorQuickClose.textContent='✕';
+creatorQuickClose.setAttribute('aria-label','Đóng thay đổi trang phục và trở về sân trường');
+document.body.append(creatorQuickClose);
+function closeCreatorSafely(){document.getElementById('creator').hidden=true;creatorQuickClose.hidden=true;if(!hasAvatar())welcome.hidden=false}
+creatorQuickClose.onclick=closeCreatorSafely;
+creatorQuickClose.hidden=true;
+const creatorVisibilityObserver=new MutationObserver(()=>{creatorQuickClose.hidden=document.getElementById('creator').hidden});
+creatorVisibilityObserver.observe(document.getElementById('creator'),{attributes:true,attributeFilter:['hidden']});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('creator').hidden)closeCreatorSafely()});
+
 const wheelButton=document.createElement('button');wheelButton.id='levelWheelButton';document.body.append(wheelButton);
 const wheelOverlay=document.createElement('div');wheelOverlay.id='wheelOverlay';wheelOverlay.hidden=true;
 wheelOverlay.innerHTML='<div id="wheelCard"><h2>🎡 Vòng Quay May Mắn</h2><p id="wheelCount"></p><div id="wheelDisc"><span>🎁</span></div><p id="wheelResult">Mỗi cấp mới nhận một lượt quay!</p><button id="wheelSpin">🎡 QUAY NHẬN QUÀ</button><button id="wheelClose">Đóng</button><h3>🎒 Túi quà</h3><div id="wheelInventory"></div></div>';
