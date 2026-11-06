@@ -1319,7 +1319,7 @@ renderer.domElement.addEventListener('pointerup',e=>{e.preventDefault();const wa
 renderer.domElement.addEventListener('pointercancel',e=>{activeCanvasPointers.delete(e.pointerId);lookPointer=null});renderer.domElement.addEventListener('lostpointercapture',e=>{activeCanvasPointers.delete(e.pointerId);if(lookPointer===e.pointerId)lookPointer=null});
 renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();orbitDistance+=Math.sign(e.deltaY)*2;clampCamera()},{passive:false});
 // Student emotes: reusable action registry; first action is a celebratory SIUU-style jump.
-const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6}};
+const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6},hop:{label:'🦩 Nhảy lò cò 2 vòng',duration:8}};
 let studentAction=null;
 const studentActionProp=new THREE.Group();avatar.add(studentActionProp);
 const micStem=new THREE.Mesh(new THREE.CylinderGeometry(.055,.065,.58,10),new THREE.MeshStandardMaterial({color:'#283b50',metalness:.4,roughness:.35}));
@@ -1349,7 +1349,16 @@ function showTeacherRoleplayCaption(speech){
 }
 function startStudentAction(id,extra={}){
  if(!studentActions[id]||!schoolGateUnlocked||!welcome.hidden||saoChase||saoEncounterOpen||seatedBench||document.getElementById('modal').style.display==='flex')return;
- autoTarget=null;studentActionProp.visible=id==='sing';studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false,...extra};
+ autoTarget=null;studentActionProp.visible=id==='sing';
+ if(id==='hop'){
+  const radius=2.8,heading=player.rotation.y;
+  const cx=player.position.x-Math.cos(heading)*radius,cz=player.position.z+Math.sin(heading)*radius;
+  const startAngle=Math.atan2(player.position.z-cz,player.position.x-cx);
+  // Check the entire circular track first; do not start if it crosses walls or desks.
+  for(let i=0;i<96;i++){const a=startAngle+i/96*Math.PI*2;if(blocked(cx+radius*Math.cos(a),cz+radius*Math.sin(a))){document.getElementById('tip').textContent='⚠️ Cần khoảng sân trống để nhảy lò cò 2 vòng';return}}
+  extra={...extra,cx,cz,radius,startAngle,startX:player.position.x,startZ:player.position.z};
+ }
+ studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false,...extra};
  const menu=document.getElementById('studentActionMenu');if(menu){menu.hidden=true;menu.style.display='none'};
  document.getElementById('tip').textContent=studentActions[id].label;
  if(id==='teacher'){
@@ -1401,14 +1410,36 @@ let dx=manualX*cameraRightX-manualZ*cameraForwardX,
 if(saoChase){const chase=saoChase;autoTarget=null;standFromBench();dx=chase.dirX;dz=chase.dirZ;speed=chase.caught?7.8:10.8;}
 if(studentAction&&studentAction.id==='siu'){const actionT=(performance.now()-studentAction.started)/1000;if(actionT<1.05&&!studentAction.runStopped){dx=studentAction.dirX;dz=studentAction.dirZ;speed=8.8;if(blocked(player.position.x+dx*speed*dt,player.position.z+dz*speed*dt)){studentAction.runStopped=true;dx=0;dz=0}}else{dx=0;dz=0}}
 if(!saoChase&&autoTarget&&schoolGateUnlocked&&welcome.hidden){const dist=Math.hypot(autoTarget.x-player.position.x,autoTarget.z-player.position.z);if(dist<(autoTarget.walkOnly?.85:2.7)){const arrived=autoTarget;autoTarget=null;if(!arrived.walkOnly){near=arrived;interact()}else document.getElementById('tip').textContent='✅ Đã đến vị trí đã chọn'}else{const ux=(autoTarget.x-player.position.x)/dist,uz=(autoTarget.z-player.position.z)/dist;const candidates=[[ux,uz],[ux+uz*.75,uz-ux*.75],[ux-uz*.75,uz+ux*.75],[uz,-ux],[-uz,ux]];let found=false;for(const [cx,cz] of candidates){const n=Math.hypot(cx,cz),tx=cx/n,tz=cz/n;if(!blocked(player.position.x+tx*1.5,player.position.z+tz*1.5)){dx=tx;dz=tz;found=true;break}}if(!found){autoStuck+=dt;if(autoStuck>1.5){autoTarget=null;document.getElementById('tip').textContent='Đường bị chắn, hãy di chuyển gần NPC hơn'}}else autoStuck=0;speed=11}}
+if(studentAction&&studentAction.id==='hop'){
+ const t=Math.min(1,(performance.now()-studentAction.started)/8000);
+ const angle=studentAction.startAngle+Math.PI*4*t;
+ const nx=studentAction.cx+studentAction.radius*Math.cos(angle);
+ const nz=studentAction.cz+studentAction.radius*Math.sin(angle);
+ if(!blocked(nx,nz)){
+  player.position.x=nx;player.position.z=nz;
+  player.rotation.y=Math.atan2(-Math.sin(angle),Math.cos(angle));
+ }
+ dx=0;dz=0;
+}
 if(studentAction&&studentAction.id==='sing'){const actionT=(performance.now()-studentAction.started)/1000;if(actionT<6){dx=studentAction.dirX;dz=studentAction.dirZ;speed=1.45;if(blocked(player.position.x+dx*speed*dt,player.position.z+dz*speed*dt)){dx=0;dz=0}}}
 const norm=Math.max(1,Math.hypot(dx,dz)),vx=dx/norm*speed*dt,vz=dz/norm*speed*dt;if(schoolGateUnlocked&&welcome.hidden&&!blocked(player.position.x+vx,player.position.z))player.position.x+=vx;if(welcome.hidden&&!blocked(player.position.x,player.position.z+vz))player.position.z+=vz;const moving=Math.hypot(vx,vz)>.001;if(schoolGateUnlocked&&welcome.hidden&&performance.now()-lastLocationSave>1800){lastLocationSave=performance.now();savePlayerLocation()}if(moving)player.rotation.y=Math.atan2(vx,vz);const walk=moving?Math.sin(clock.elapsedTime*(saoChase?22:12))*(saoChase?.8:.48):0;legs[0].rotation.x=seatedBench?-1.15:walk;legs[1].rotation.x=seatedBench?-1.15:-walk;if(!shotActive){arms[0].rotation.x=-walk*.65;arms[1].rotation.x=walk*.65;}avatar.position.y=seatedBench?-.45:moving?Math.abs(Math.sin(clock.elapsedTime*(saoChase?22:12)))*(saoChase?.12:.065):0;
 if(studentAction){
  const t=(performance.now()-studentAction.started)/1000;
  if(t>=studentActions[studentAction.id].duration){
+  if(studentAction.id==='hop'){player.position.x=studentAction.startX;player.position.z=studentAction.startZ;document.getElementById('tip').textContent='✅ Đã nhảy lò cò đủ 2 vòng!'}
   if(studentAction.id==='teacher'){const caption=document.getElementById('teacherRoleplayCaption');if(caption)caption.remove()}studentAction=null;studentActionProp.visible=false;avatar.rotation.y=0;avatar.rotation.z=0;avatar.position.y=0;
   arms[0].rotation.x=0;arms[1].rotation.x=0;arms[0].rotation.z=0;arms[1].rotation.z=0;
   legs[0].rotation.x=0;legs[1].rotation.x=0;
+ }else if(studentAction.id==='hop'){
+  const bounce=Math.abs(Math.sin(t*11.5*Math.PI));
+  avatar.position.y=bounce*.42;
+  avatar.rotation.y=0;
+  avatar.rotation.z=Math.sin(t*11.5*Math.PI)*.075;
+  legs[0].rotation.x=-.08;
+  legs[1].rotation.x=-1.3;
+  arms[0].rotation.x=Math.sin(t*11.5*Math.PI)*.5;
+  arms[1].rotation.x=-Math.sin(t*11.5*Math.PI)*.5;
+  arms[0].rotation.z=-.6;arms[1].rotation.z=.6;
  }else if(studentAction.id==='hiphop'){
   const beat=t*2*Math.PI*1.65;
   avatar.position.y=Math.abs(Math.sin(beat))*.24;
