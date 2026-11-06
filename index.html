@@ -1408,7 +1408,7 @@ function installStudentActions(){
  button.onclick=()=>{menu.hidden=!menu.hidden;menu.style.display=menu.hidden?'none':'flex'};menu.style.display='none';document.body.append(button,menu);
 }
 installStudentActions();
-const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05),manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
+const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);bumNetFrame(dt);const manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
 // Manual movement is camera-relative: W/up always moves into the scene from the current viewpoint.
 const cameraRightX=Math.cos(orbitYaw),cameraRightZ=-Math.sin(orbitYaw);
 const cameraForwardX=-Math.sin(orbitYaw),cameraForwardZ=-Math.cos(orbitYaw);
@@ -1497,5 +1497,134 @@ if(studentAction){
 }
 seniorStudent.rotation.z=Math.sin(clock.elapsedTime*2)*.018;const target=new THREE.Vector3(player.position.x,player.position.y+1.4,player.position.z);const cp=Math.cos(orbitPitch),sp=Math.sin(orbitPitch);const desired=target.clone().add(new THREE.Vector3(Math.sin(orbitYaw)*cp*orbitDistance,sp*orbitDistance+1,Math.cos(orbitYaw)*cp*orbitDistance));if(floor===0&&lectureStageView){const stageCamera=new THREE.Vector3(120,7.4,12.5);camera.position.lerp(stageCamera,.12);camera.lookAt(120,2.15,-9.5)}else{camera.position.lerp(desired,.14);camera.lookAt(target)}near=null;let dist=3.2;for(const p of (floor<0?[...points,saoPoint]:floor===2?sportsPoints:floor===3?simplePoints:floor===4?libraryPoints:floor===5?artPoints:indoorPoints)){const offset=floor<0?0:floor===2?170:floor===3?220:floor===4?270:floor===5?320:120;const d=Math.hypot(player.position.x-(p.x+offset),player.position.z-p.z);if(d<dist){near=p;dist=d}}document.getElementById('action').style.opacity=near?'1':'.55';document.getElementById('tip').textContent=autoTarget?'🏃 Đang chạy đến '+autoTarget.label:near?'Chạm trực tiếp để tương tác: '+near.label:state.libraryDone&&state.lessonDone?'🎉 Hoàn thành Alpha 0.4!':state.quizDone?'Gặp giáo viên và đọc sách tại lớp':state.anComplete?'🏫 Đến cửa tòa nhà học để vào lớp':floor>=0?'Tầng '+(floor+1)+' · Giáo viên, thư viện, bảng câu hỏi':state.anStarted?'Tìm bông hoa và cây tri thức':state.complete?'Gặp cô Nhi gần thư viện để nhận nhiệm vụ 2':state.started?'Tìm sách ở thư viện và bảng trước tòa nhà học':'Gặp thầy Huy nhập học';renderer.render(scene,camera);if(Math.floor(clock.elapsedTime*2)!==Math.floor((clock.elapsedTime-dt)*2)){const d=document.getElementById('sceneDebug');if(d)d.textContent='3D '+(floor<0?'Sân trường':'Phòng '+floor)+' · x:'+player.position.x.toFixed(1)+' z:'+player.position.z.toFixed(1)+' · vật thể:'+renderer.info.render.calls+' · camera:'+camera.position.y.toFixed(1)}}catch(error){const message=String(error&&error.message||error);if(message!==lastRenderError){lastRenderError=message;console.error('Bé Bum 3D frame error:',error);const tip=document.getElementById('tip');if(tip)tip.textContent='⚠️ Lỗi 3D: '+message.slice(0,100)}try{camera.position.set(player.position.x+12,16,player.position.z+22);camera.lookAt(player.position.x,1,player.position.z);renderer.render(scene,camera)}catch(e){console.error('3D fallback render:',e)}}}function restorePlayerLocation(){try{const saved=JSON.parse(localStorage.getItem(locationSaveKey)||'null');if(!saved||![-1,0,2,3,4,5].includes(saved.floor)||!Number.isFinite(saved.x)||!Number.isFinite(saved.z)||saved.student!==appearance.name)return;const oldFloor=floor;floor=saved.floor;const safe= !blocked(saved.x,saved.z);if(!safe){floor=oldFloor;return}syncFloorVisibility();player.position.set(saved.x,0,saved.z);player.rotation.y=Number.isFinite(saved.yaw)?saved.yaw:0;orbitYaw=Number.isFinite(saved.cameraYaw)?saved.cameraYaw:0;orbitPitch=Number.isFinite(saved.cameraPitch)?saved.cameraPitch:(floor<0?.48:.88);orbitDistance=Number.isFinite(saved.cameraDistance)?saved.cameraDistance:(floor<0?23:29);clampCamera();camera.position.set(saved.x+12,13,saved.z+16);if(floor===0){activateClassroom(floor);currentSaying=sayings[Math.floor(Math.random()*sayings.length)];updateDeskOwnership();readClassroomSaying()}if(floor===2)updateSportsHud();if([3,4,5].includes(floor))updateFunctionalRoomHud()}catch(e){console.warn('Không thể khôi phục vị trí',e)}}function updateLiveDateTime(){document.getElementById('liveDateTime').textContent=new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date())}updateLiveDateTime();setInterval(updateLiveDateTime,1000);// TEST MODE: password entry disabled; student codes are preserved.
 const schoolGateUnlocked=true;
-restorePlayerLocation();if(floor===-1&&(!Number.isFinite(player.position.x)||!Number.isFinite(player.position.z)||Math.abs(player.position.x)>78||Math.abs(player.position.z)>46)){player.position.set(0,0,28);orbitYaw=0;orbitPitch=.65;orbitDistance=29}addEventListener('pagehide',savePlayerLocation);document.addEventListener('visibilitychange',()=>{if(document.hidden)savePlayerLocation()});frame();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+restorePlayerLocation();if(floor===-1&&(!Number.isFinite(player.position.x)||!Number.isFinite(player.position.z)||Math.abs(player.position.x)>78||Math.abs(player.position.z)>46)){player.position.set(0,0,28);orbitYaw=0;orbitPitch=.65;orbitDistance=29}addEventListener('pagehide',savePlayerLocation);document.addEventListener('visibilitychange',()=>{if(document.hidden)savePlayerLocation()});
+/* Family multiplayer beta: no account, PeerJS public signaling + encrypted WebRTC data channels.
+   Room codes are invitations, not authentication. Do not use for public rooms or private information. */
+const bumNet={peer:null,host:false,code:'',connections:new Map(),remotes:new Map(),lastSent:0,loading:null};
+const bumNetCss=document.createElement('style');bumNetCss.textContent=
+'#bumNetButton{position:fixed;left:12px;bottom:112px;z-index:10040;background:#174d78;color:white;border:2px solid #9ddcff;border-radius:13px;padding:10px 13px;font:800 13px system-ui;cursor:pointer;box-shadow:0 3px 12px #0005}'+
+'#bumNetPanel{position:fixed;left:12px;bottom:164px;z-index:10042;width:min(340px,calc(100vw - 24px));max-height:70vh;overflow:auto;padding:15px;border:2px solid #8dd8ff;border-radius:17px;background:#10344ef5;color:white;box-shadow:0 12px 30px #0007;font:14px system-ui}'+
+'#bumNetPanel[hidden]{display:none!important}#bumNetPanel button{border:0;border-radius:9px;padding:9px 11px;background:#ffcb62;color:#18334a;font-weight:800;cursor:pointer}#bumNetPanel input{padding:10px;width:100%;border-radius:9px;border:1px solid #8ad1f5;margin:7px 0;color:#18334a}'+
+'#bumNetPanel .netrow{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}#bumNetPanel .netmsg{font-size:12px;line-height:1.5;color:#d6edff;margin-top:8px}';
+document.head.append(bumNetCss);
+const bumNetBtn=document.createElement('button');bumNetBtn.id='bumNetButton';bumNetBtn.textContent='👫 Chơi cùng bạn';document.body.append(bumNetBtn);
+const bumNetPanel=document.createElement('section');bumNetPanel.id='bumNetPanel';bumNetPanel.hidden=true;
+bumNetPanel.innerHTML='<strong>👫 Chơi cùng gia đình & bạn bè</strong><p style="font-size:12px">Không cần đăng ký. Một máy tạo phòng, các máy khác nhập mã hoặc mở link mời.</p><div class="netrow"><button id="bumHost">🏠 Tạo phòng</button><button id="bumLeave">🚪 Rời phòng</button></div><input id="bumRoomCode" placeholder="Nhập mã phòng 6 ký tự" maxlength="6" autocomplete="off"><div class="netrow"><button id="bumJoin">🔗 Vào phòng</button><button id="bumCopy">📋 Sao chép link mời</button></div><div id="bumNetStatus" class="netmsg">Chưa kết nối</div><div class="netrow" id="bumNetSay"></div><div class="netmsg">⚠️ Bản thử nghiệm dùng kết nối WebRTC qua dịch vụ tín hiệu công cộng. Chỉ chia sẻ mã cho người quen. Không gửi thông tin cá nhân.</div>';
+document.body.append(bumNetPanel);
+const bumStatus=t=>{document.getElementById('bumNetStatus').textContent=t;bumNetBtn.textContent='👫 '+(bumNet.peer?'Bạn bè '+(bumNet.connections.size+1):'Chơi cùng bạn')};
+bumNetBtn.onclick=()=>{bumNetPanel.hidden=!bumNetPanel.hidden};
+function bumLoadPeer(){
+ if(window.Peer)return Promise.resolve();
+ if(bumNet.loading)return bumNet.loading;
+ bumNet.loading=new Promise((resolve,reject)=>{
+  const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
+  script.onload=()=>window.Peer?resolve():reject(Error('Không tải được PeerJS'));
+  script.onerror=()=>reject(Error('Không tải được thư viện kết nối'));
+  document.head.append(script);
+ });return bumNet.loading;
+}
+function bumRoomId(code){return 'be-bum-family-v1-'+code.toLowerCase()}
+function bumMakeCode(){const b=new Uint8Array(4);crypto.getRandomValues(b);return Array.from(b,v=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[v%32]).join('')+'AB'}
+function bumName(){return String(appearance.name||'Học sinh').slice(0,24)}
+function bumPacket(){return {t:'state',name:bumName(),x:player.position.x,z:player.position.z,r:player.rotation.y,f:floor,a:studentAction?.id||'',at:studentAction?.started||0}}
+function bumSend(conn,msg){if(conn?.open)try{conn.send(msg)}catch(e){console.warn('Multiplayer send',e)}}
+function bumBroadcast(msg,except){for(const [id,conn] of bumNet.connections)if(id!==except)bumSend(conn,msg)}
+function bumRemote(id){let entry=bumNet.remotes.get(id);if(entry)return entry;
+ const root=new THREE.Group(),model=avatar.clone(true);
+ model.traverse(o=>{if(o.isMesh&&o.material)o.material=o.material.clone()});
+ root.add(model);
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+ const label=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false}));
+ label.scale.set(3.8,.95,1);label.position.set(0,3.25,0);root.add(label);
+ scene.add(root);entry={root,model,canvas,texture,name:'',targetX:0,targetZ:0,targetR:0,f:-99,a:'',updated:performance.now()};
+ bumNet.remotes.set(id,entry);return entry;
+}
+function bumDropRemote(id){const e=bumNet.remotes.get(id);if(!e)return;scene.remove(e.root);e.texture.dispose();e.root.traverse(o=>{if(o.isSprite)o.material.dispose()});bumNet.remotes.delete(id)}
+function bumReceive(id,data){
+ if(!data||typeof data!=='object')return;
+ if(data.t==='state'){
+  if(!Number.isFinite(data.x)||!Number.isFinite(data.z)||!Number.isFinite(data.r)||!Number.isInteger(data.f)||Math.abs(data.x)>400||Math.abs(data.z)>400)return;
+  const e=bumRemote(id);e.targetX=data.x;e.targetZ=data.z;e.targetR=data.r;e.f=data.f;e.a=typeof data.a==='string'?data.a.slice(0,16):'';e.updated=performance.now();
+  const name=String(data.name||'Bạn học').slice(0,24);
+  if(name!==e.name){e.name=name;const ctx=e.canvas.getContext('2d');ctx.clearRect(0,0,512,128);ctx.fillStyle='#15476b';ctx.beginPath();ctx.roundRect(6,8,500,112,32);ctx.fill();ctx.fillStyle='white';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 49px system-ui';ctx.fillText(name,256,64,465);e.texture.needsUpdate=true}
+  if(bumNet.host)bumBroadcast({...data,t:'relay',from:id},id);
+ }else if(data.t==='relay'&&!bumNet.host&&typeof data.from==='string'){
+  bumReceive(data.from,{...data,t:'state'});
+ }else if(data.t==='say'&&Number.isInteger(data.i)&&data.i>=0&&data.i<bumPhrases.length){
+  bumShowSpeech(id,bumPhrases[data.i]);
+  if(bumNet.host)bumBroadcast({...data,t:'relaySay',from:id},id);
+ }else if(data.t==='relaySay'&&!bumNet.host&&typeof data.from==='string'&&Number.isInteger(data.i)&&data.i>=0&&data.i<bumPhrases.length){
+  bumShowSpeech(data.from,bumPhrases[data.i]);
+ }
+}
+function bumShowSpeech(id,phrase){
+ const e=bumNet.remotes.get(id);if(!e)return;
+ let bubble=e.root.getObjectByName('bumSpeech');if(bubble){e.root.remove(bubble);bubble.material.map.dispose();bubble.material.dispose()}
+ const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');
+ ctx.fillStyle='#fff7dc';ctx.beginPath();ctx.roundRect(4,4,504,120,25);ctx.fill();ctx.fillStyle='#243c59';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 35px system-ui';ctx.fillText(phrase,256,64,485);
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+ bubble=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));bubble.name='bumSpeech';bubble.scale.set(4.8,1.2,1);bubble.position.set(0,4.35,0);e.root.add(bubble);
+ const current=bubble;setTimeout(()=>{if(current.parent){current.parent.remove(current);tex.dispose();current.material.dispose()}},4800);
+}
+function bumAttach(conn){
+ if(!conn||bumNet.connections.has(conn.peer))return;
+ bumNet.connections.set(conn.peer,conn);
+ conn.on('open',()=>{
+  bumStatus('🟢 Đã kết nối '+(bumNet.connections.size+1)+' máy. Mã: '+bumNet.code);
+  bumSend(conn,bumPacket());
+  if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a});
+ });
+ conn.on('data',data=>bumReceive(conn.peer,data));
+ conn.on('close',()=>{bumNet.connections.delete(conn.peer);bumDropRemote(conn.peer);bumStatus('Còn '+(bumNet.connections.size+1)+' máy trong phòng')});
+ conn.on('error',()=>bumStatus('⚠️ Kết nối với bạn bị lỗi'));
+}
+function bumLeave(){
+ for(const conn of bumNet.connections.values())try{conn.close()}catch{}
+ bumNet.connections.clear();for(const id of [...bumNet.remotes.keys()])bumDropRemote(id);
+ if(bumNet.peer)try{bumNet.peer.destroy()}catch{}
+ bumNet.peer=null;bumNet.code='';bumNet.host=false;bumStatus('Đã rời phòng');
+}
+async function bumStart(host,code){
+ bumLeave();bumStatus('⏳ Đang kết nối, vui lòng đợi...');
+ try{
+  await bumLoadPeer();
+  bumNet.host=host;bumNet.code=code;
+  const peer=host?new Peer(bumRoomId(code)):new Peer();
+  bumNet.peer=peer;
+  peer.on('connection',conn=>{if(!bumNet.host||bumNet.connections.size>=9){conn.close();return}bumAttach(conn)});
+  peer.on('error',e=>{bumStatus(e.type==='unavailable-id'?'⚠️ Mã phòng đã có người sử dụng. Hãy tạo mã mới.':'⚠️ Không thể kết nối: '+e.type)});
+  peer.on('disconnected',()=>bumStatus('⚠️ Mất kết nối máy chủ tín hiệu, đang thử kết nối lại'));
+  peer.on('open',()=>{
+   if(host){bumStatus('🟢 Phòng '+code+' đã mở. Gửi mã hoặc link mời cho bạn.');}
+   else{const conn=peer.connect(bumRoomId(code),{reliable:true});bumAttach(conn);
+    setTimeout(()=>{if(bumNet.peer===peer&&!conn.open)bumStatus('⚠️ Không vào được phòng. Kiểm tra mã và máy chủ phòng còn mở.')},12000)}
+  });
+ }catch(e){bumStatus('⚠️ '+e.message)}
+}
+const bumPhrases=['👋 Chào bạn!','⚽ Chơi bóng nhé!','🕺 Cùng nhảy nào!','👏 Bạn giỏi quá!','😊 Cảm ơn bạn!','👋 Tạm biệt!'];
+for(let i=0;i<bumPhrases.length;i++){const b=document.createElement('button');b.textContent=bumPhrases[i];b.onclick=()=>{if(!bumNet.peer)return bumStatus('Hãy vào phòng trước');const data={t:'say',i};if(bumNet.host)bumBroadcast(data);else for(const conn of bumNet.connections.values())bumSend(conn,data);document.getElementById('tip').textContent=bumPhrases[i]};document.getElementById('bumNetSay').append(b)}
+document.getElementById('bumHost').onclick=()=>bumStart(true,bumMakeCode());
+document.getElementById('bumJoin').onclick=()=>{const code=document.getElementById('bumRoomCode').value.trim().toUpperCase();if(!/^[A-Z2-9]{6}$/.test(code))return bumStatus('Nhập mã phòng gồm 6 ký tự');bumStart(false,code)};
+document.getElementById('bumLeave').onclick=bumLeave;
+document.getElementById('bumCopy').onclick=async()=>{if(!bumNet.code)return bumStatus('Hãy tạo hoặc vào phòng trước');const u=new URL(location.href);u.searchParams.set('room',bumNet.code);try{await navigator.clipboard.writeText(u.href);bumStatus('📋 Đã sao chép link mời: '+bumNet.code)}catch{bumStatus('Link mời: '+u.href)}};
+function bumNetFrame(dt){
+ if(!bumNet.peer)return;
+ const now=performance.now();
+ if(now-bumNet.lastSent>100){bumNet.lastSent=now;const data=bumPacket();if(bumNet.host)bumBroadcast(data);else for(const conn of bumNet.connections.values())bumSend(conn,data)}
+ for(const [id,e] of bumNet.remotes){
+  e.root.visible=e.f===floor&&now-e.updated<8000;
+  if(!e.root.visible)continue;
+  const alpha=Math.min(1,dt*12);
+  if(Math.hypot(e.targetX-e.root.position.x,e.targetZ-e.root.position.z)>20)e.root.position.set(e.targetX,0,e.targetZ);
+  else{e.root.position.x+=(e.targetX-e.root.position.x)*alpha;e.root.position.z+=(e.targetZ-e.root.position.z)*alpha}
+  e.root.rotation.y+=Math.atan2(Math.sin(e.targetR-e.root.rotation.y),Math.cos(e.targetR-e.root.rotation.y))*alpha;
+  e.model.position.y=e.a==='hiphop'?Math.abs(Math.sin(now*.012))*.2:e.a==='hop'?Math.abs(Math.sin(now*.016))*.3:0;
+ }
+}
+addEventListener('pagehide',()=>{if(bumNet.peer)bumLeave()});
+const bumInvite=new URLSearchParams(location.search).get('room');
+if(bumInvite&&/^[A-Z2-9]{6}$/i.test(bumInvite)){document.getElementById('bumRoomCode').value=bumInvite.toUpperCase();bumNetPanel.hidden=false;bumStatus('🔗 Có lời mời vào phòng '+bumInvite.toUpperCase()+'. Bấm “Vào phòng”.')}
+
+frame();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
