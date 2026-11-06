@@ -1882,10 +1882,16 @@ document.body.append(surpriseNotice);
 let surpriseActive=-1,surpriseTravel=0,surpriseLastX=player.position.x,surpriseLastZ=player.position.z;
 function surpriseRandom(max){const n=new Uint32Array(1);if(window.crypto?.getRandomValues)window.crypto.getRandomValues(n);else n[0]=Math.floor(Math.random()*4294967296);return n[0]%max}
 // One shared mission is issued and awarded by the elected WebRTC room host.
-let sharedMission=null,sharedMissionSeq=0,sharedMissionClaimed=false;
+let sharedMission=null,sharedMissionSeq=0,sharedMissionClaimed=false,sharedMissionLocalDeadline=0;
+const SHARED_MISSION_WINDOW_MS=7000;
+const missionCountdown=document.createElement('div');missionCountdown.id='missionCountdown';missionCountdown.hidden=true;missionCountdown.style.cssText='font-weight:900;font-size:18px;color:#a23b20;margin:5px auto';surpriseNotice.insertBefore(missionCountdown,surpriseNotice.querySelector('button'));
 function sharedMissionSend(message){if(!bumNet.peer)return;if(bumNet.host)bumBroadcast(message);else for(const conn of bumNet.connections.values())bumSend(conn,message)}
 function sharedMissionDisplay(){
- const visible=!!sharedMission&&!sharedMissionClaimed&&welcome.hidden&&floor===-1;
+ const remaining=Math.max(0,sharedMissionLocalDeadline-Date.now());
+ const visible=!!sharedMission&&!sharedMissionClaimed&&remaining>0&&welcome.hidden&&floor===-1;
+ if(surpriseTargetMode&&surpriseActive>=0)return;
+ missionCountdown.hidden=!visible;
+ if(visible)missionCountdown.textContent='⏳ Còn '+Math.ceil(remaining/1000)+' giây';
  surpriseNotice.hidden=!visible;
  if(visible){
   surpriseNotice.querySelector('strong').textContent='🎉 NHIỆM VỤ CHUNG!';
@@ -1895,14 +1901,15 @@ function sharedMissionDisplay(){
 }
 function sharedMissionHandle(id,data){
  if(data.t==='mission-sync'&&!bumNet.host){
-  if(data.mission&&Number.isInteger(data.mission.index)&&data.mission.index>=0&&data.mission.index<surpriseQuests.length)sharedMission={id:String(data.mission.id),index:data.mission.index};
+  if(data.mission&&Number.isInteger(data.mission.index)&&data.mission.index>=0&&data.mission.index<surpriseQuests.length){sharedMission={id:String(data.mission.id),index:data.mission.index};sharedMissionLocalDeadline=Date.now()+Math.min(SHARED_MISSION_WINDOW_MS,Math.max(0,Number(data.remaining)||SHARED_MISSION_WINDOW_MS));}
   else sharedMission=null;
   sharedMissionClaimed=!!data.claimed;sharedMissionDisplay();return true;
  }
  if(data.t==='mission-claim'&&bumNet.host){
   if(!sharedMission||sharedMissionClaimed||data.id!==sharedMission.id)return true;
+  if(Date.now()>=sharedMission.expiresAt){sharedMission=null;sharedMissionClaimed=false;bumBroadcast({t:'mission-sync',mission:null,claimed:false});sharedMissionDisplay();return true}
   const claimant=id==='local'?'local':id;
-  sharedMissionClaimed=true;
+  sharedMissionClaimed=true;sharedMissionDisplay();
   bumBroadcast({t:'mission-sync',mission:sharedMission,claimed:true});
   if(claimant==='local')sharedMissionWon(sharedMission);
   else bumSend(bumNet.connections.get(claimant),{t:'mission-won',mission:sharedMission});
@@ -1922,12 +1929,12 @@ function surpriseOffer(){
  if(!bumNet.peer||!bumNet.host||sharedMission||!welcome.hidden||floor!==-1||document.hidden)return;
  const pool=surpriseQuests.map((q,i)=>i).filter(i=>!(surpriseState.recent||[]).includes(i));
  const index=(pool.length?pool:surpriseQuests.map((q,i)=>i))[surpriseRandom(pool.length||surpriseQuests.length)];
- sharedMission={id:String(++sharedMissionSeq)+'-'+String(Date.now()),index};sharedMissionClaimed=false;
- sharedMissionSend({t:'mission-sync',mission:sharedMission,claimed:false});
+ sharedMission={id:String(++sharedMissionSeq)+'-'+String(Date.now()),index,expiresAt:Date.now()+SHARED_MISSION_WINDOW_MS};sharedMissionLocalDeadline=sharedMission.expiresAt;sharedMissionClaimed=false;
+ sharedMissionSend({t:'mission-sync',mission:sharedMission,remaining:SHARED_MISSION_WINDOW_MS,claimed:false});
  sharedMissionDisplay();
 }
 function surpriseStart(authorized=false){
- if(!authorized){if(!sharedMission||sharedMissionClaimed)return;sharedMissionSend({t:'mission-claim',id:sharedMission.id});if(bumNet.host)sharedMissionHandle('local',{t:'mission-claim',id:sharedMission.id});return}
+ if(!authorized){if(!sharedMission||sharedMissionClaimed||Date.now()>=sharedMissionLocalDeadline)return;sharedMissionSend({t:'mission-claim',id:sharedMission.id});if(bumNet.host)sharedMissionHandle('local',{t:'mission-claim',id:sharedMission.id});return}
  if(surpriseActive<0)return;
  const index=surpriseActive,quest=surpriseQuests[index];surpriseNotice.hidden=true;
  if(quest.type==='visit'||quest.type==='npc'){
@@ -1956,6 +1963,7 @@ function updateSurpriseQuests(){
  const x=player.position.x,z=player.position.z,dist=Math.hypot(x-surpriseLastX,z-surpriseLastZ);
  surpriseLastX=x;surpriseLastZ=z;
  if(!welcome.hidden||floor!==-1||document.hidden)return;
+ if(bumNet?.host&&sharedMission&&!sharedMissionClaimed&&Date.now()>=sharedMission.expiresAt){sharedMission=null;sharedMissionClaimed=false;bumBroadcast({t:'mission-sync',mission:null,claimed:false})}
  sharedMissionDisplay();
  if(dist>.01&&dist<2)surpriseTravel+=dist;
  // Random gameplay-distance opportunities; no predictable timed schedule.
@@ -2158,7 +2166,7 @@ function bumAttach(conn){
  conn.on('open',()=>{
   bumStatus('🟢 Sân trường chung: '+(bumNet.connections.size+1)+' người đang kết nối');
   bumSend(conn,bumPacket());
-  if(bumNet.host)bumSend(conn,{t:'mission-sync',mission:sharedMission,claimed:sharedMissionClaimed});
+  if(bumNet.host)bumSend(conn,{t:'mission-sync',mission:sharedMission,remaining:sharedMission?Math.max(0,sharedMission.expiresAt-Date.now()):0,claimed:sharedMissionClaimed});
   if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,look:e.lookKey?JSON.parse(e.lookKey):undefined,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a});
  });
  conn.on('data',data=>bumReceive(conn.peer,data));
