@@ -2280,8 +2280,78 @@ function bumRemote(id){let entry=bumNet.remotes.get(id);if(entry)return entry;
  bumNet.remotes.set(id,entry);return entry;
 }
 function bumDropRemote(id){const e=bumNet.remotes.get(id);if(!e)return;scene.remove(e.root);e.texture.dispose();e.root.traverse(o=>{if(o.isSprite)o.material.dispose()});bumNet.remotes.delete(id)}
+
+// Community chat: peer-hosted, with bounded local history and child-friendly rules.
+const communityKey='bum-community-chat-v1';
+const communityMax=150;
+let communityMessages=[],communitySeen=new Set(),communityLastSend=0,communityLastNpc=0;
+try{const old=JSON.parse(localStorage.getItem(communityKey)||'[]');if(Array.isArray(old))communityMessages=old.filter(x=>x&&typeof x.id==='string'&&typeof x.text==='string').slice(-communityMax)}catch{}
+communitySeen=new Set(communityMessages.map(x=>x.id));
+const communityStyle=document.createElement('style');
+communityStyle.textContent=`#communityToggle{position:fixed;right:12px;bottom:110px;z-index:10043;background:#174d78;color:#fff;border:2px solid #ffcf72;border-radius:15px;padding:11px;font:800 14px system-ui;cursor:pointer}#communityPanel{position:fixed;right:12px;bottom:165px;width:min(380px,calc(100vw - 24px));height:min(530px,68dvh);z-index:10044;background:#163f62;color:white;border:2px solid #a6dcff;border-radius:18px;box-shadow:0 12px 35px #0008;display:flex;flex-direction:column;overflow:hidden;font:14px system-ui}#communityPanel[hidden]{display:none!important}#communityHead{padding:12px;background:#0c2e4a;display:flex;justify-content:space-between;align-items:center;font-weight:800}#communityHead button{background:transparent;color:white;border:0;font-size:22px}#communityLog{flex:1;overflow:auto;padding:12px;background:#f4f8fc;color:#18334a;overscroll-behavior:contain}#communityLog .entry{margin:0 0 10px;overflow-wrap:anywhere}#communityLog .meta{font-size:11px;color:#597185;margin-bottom:3px}#communityLog .bubble{display:inline-block;max-width:94%;padding:8px 10px;border-radius:11px;background:#dcecff;white-space:pre-wrap}#communityLog .mine{text-align:right}#communityLog .mine .bubble{background:#d9f3df;text-align:left}#communityLog .teacher .bubble{background:#fff0c7}#communityCompose{display:flex;gap:6px;padding:10px;background:#163f62}#communityInput{min-width:0;flex:1;border:0;border-radius:9px;padding:10px;font:16px system-ui}#communitySend{border:0;border-radius:9px;background:#ffcd68;color:#14344c;padding:9px 12px;font-weight:800}#communityHelp{padding:0 11px 8px;color:#d8e8f3;font-size:11px}@media(max-width:700px){#communityToggle{right:8px;bottom:calc(env(safe-area-inset-bottom,0px) + 105px)}#communityPanel{right:6px;left:6px;width:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 154px);height:min(470px,58dvh)}}`;
+document.head.append(communityStyle);
+const communityToggle=document.createElement('button');communityToggle.id='communityToggle';communityToggle.textContent='💬 Chat';document.body.append(communityToggle);
+const communityPanel=document.createElement('section');communityPanel.id='communityPanel';communityPanel.hidden=true;
+communityPanel.innerHTML='<div id="communityHead"><span>💬 Chat cộng đồng</span><button id="communityClose" aria-label="Đóng chat">×</button></div><div id="communityLog" role="log" aria-live="polite"></div><form id="communityCompose"><input id="communityInput" maxlength="180" placeholder="Nhắn tin với bạn bè..." autocomplete="off" aria-label="Tin nhắn"><button id="communitySend" type="submit">Gửi</button></form><div id="communityHelp">🔒 Không chia sẻ địa chỉ, số điện thoại hoặc thông tin riêng tư.</div>';
+document.body.append(communityPanel);
+const communityLog=document.getElementById('communityLog');
+function communityRender(){
+ communityLog.replaceChildren();
+ for(const m of communityMessages){
+  const item=document.createElement('div');item.className='entry'+(m.teacher?' teacher':'')+(m.device===bumDeviceId?' mine':'');
+  const meta=document.createElement('div');meta.className='meta';meta.textContent=new Date(m.time).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})+' · '+(m.teacher?'👨‍🏫 ':'')+m.name;
+  const bubble=document.createElement('span');bubble.className='bubble';bubble.textContent=m.text;item.append(meta,bubble);communityLog.append(item);
+ }
+ communityLog.scrollTop=communityLog.scrollHeight;
+}
+function communityStore(){
+ try{localStorage.setItem(communityKey,JSON.stringify(communityMessages.slice(-communityMax)))}catch{}
+}
+function communityAdd(m){
+ if(!m||typeof m.id!=='string'||m.id.length>100||communitySeen.has(m.id)||typeof m.text!=='string'||m.text.length>180||typeof m.name!=='string')return false;
+ if(!Number.isFinite(m.time)||Math.abs(Date.now()-m.time)>30*86400000)return false;
+ communitySeen.add(m.id);communityMessages.push({id:m.id,text:m.text,name:m.name.slice(0,24),time:m.time,teacher:!!m.teacher,device:String(m.device||'').slice(0,100)});
+ communityMessages.sort((a,b)=>a.time-b.time);communityMessages=communityMessages.slice(-communityMax);communityStore();if(!communityPanel.hidden)communityRender();return true;
+}
+const communityBadWords=/(địt|đụ|đéo|đĩ|lồn|cặc|fuck|shit|bitch|giết|đánh chết|tự tử|ngu như|đồ ngu|cút đi|đồ khốn)/i;
+const communityPrivate=/(\b(?:\+?84|0)[ .-]?(?:\d[ .-]?){9,10}\b|\b(?:zalo|facebook|telegram|instagram|discord|số điện thoại|địa chỉ nhà|mật khẩu)\b)/i;
+function communityIssue(text){if(communityPrivate.test(text))return 'Các em không chia sẻ số điện thoại, địa chỉ, tài khoản hay mật khẩu trong chat nhé!';if(communityBadWords.test(text))return 'Các em hãy sử dụng lời nói lịch sự, không xúc phạm, đe dọa hoặc bắt nạt bạn nhé!';return ''}
+const communityTeachers=['Thầy giám thị Huy','Cô chủ nhiệm','Thầy thể dục'];
+function communityTeacherReply(reason){
+ const now=Date.now();if(now-communityLastNpc<25000)return;
+ communityLastNpc=now;const m={id:'teacher-'+now+'-'+Math.random().toString(36).slice(2),name:communityTeachers[Math.floor(Math.random()*communityTeachers.length)],text:reason,time:now,teacher:true,device:'npc'};
+ if(communityAdd(m)&&bumNet.host)bumBroadcast({t:'community-message',message:m});
+}
+function communityReceive(id,data){
+ if(data.t==='community-history'&&!bumNet.host&&Array.isArray(data.messages)){for(const m of data.messages.slice(-communityMax))communityAdd(m);return true}
+ if(data.t!=='community-message')return false;
+ const m=data.message;
+ if(!m||typeof m!=='object'||typeof m.text!=='string'||m.text.length>180)return true;
+ if(!bumNet.host&&m.teacher){communityAdd(m);return true}
+ if(m.teacher)return true;
+ if(bumNet.host){
+  const issue=communityIssue(m.text);
+  if(issue){communityTeacherReply(issue);return true}
+  if(communityAdd(m))bumBroadcast({t:'community-message',message:m},id);
+ }else if(communityAdd(m)){}
+ return true;
+}
+communityToggle.onclick=()=>{communityPanel.hidden=!communityPanel.hidden;if(!communityPanel.hidden)communityRender()};
+document.getElementById('communityClose').onclick=()=>communityPanel.hidden=true;
+document.getElementById('communityCompose').onsubmit=e=>{
+ e.preventDefault();const input=document.getElementById('communityInput'),message=input.value.trim().replace(/\s+/g,' ');if(!message)return;
+ if(Date.now()-communityLastSend<2500){document.getElementById('communityHelp').textContent='⏳ Đợi một chút trước khi gửi tiếp nhé.';return}
+ const issue=communityIssue(message);if(issue){document.getElementById('communityHelp').textContent='⚠️ '+issue;communityTeacherReply(issue);return}
+ if(!bumNet.peer||(!bumNet.host&&![...bumNet.connections.values()].some(c=>c.open))){document.getElementById('communityHelp').textContent='⚠️ Đang kết nối sân trường. Vui lòng thử lại.';return}
+ communityLastSend=Date.now();const m={id:bumDeviceId+'-'+Date.now()+'-'+Math.random().toString(36).slice(2),name:bumName(),text:message,time:Date.now(),device:bumDeviceId};
+ communityAdd(m);if(bumNet.host)bumBroadcast({t:'community-message',message:m});else for(const conn of bumNet.connections.values())bumSend(conn,{t:'community-message',message:m});
+ input.value='';document.getElementById('communityHelp').textContent='🔒 Hãy trò chuyện văn minh và bảo vệ thông tin cá nhân.';
+};
+communityRender();
+
 function bumReceive(id,data){
  if(!data||typeof data!=='object')return;
+ if(communityReceive(id,data))return;
  if(sharedMissionHandle(id,data))return;
  if(handleFriendWire(id,data))return;
  if(data.t==='peer-left'&&typeof data.from==='string'){bumDropRemote(data.from);return}
@@ -2334,6 +2404,7 @@ function bumAttach(conn){
  conn.on('open',()=>{
   bumStatus('🟢 Sân trường chung: '+(bumNet.connections.size+1)+' người đang kết nối');
   bumSend(conn,bumPacket());
+  if(bumNet.host)bumSend(conn,{t:'community-history',messages:communityMessages.slice(-communityMax)});
   if(bumNet.host)bumSend(conn,{t:'mission-sync',mission:sharedMission,remaining:sharedMission?Math.max(0,sharedMission.expiresAt-Date.now()):0,claimed:sharedMissionClaimed});
   if(bumNet.host)for(const [id,e] of bumNet.remotes)if(id!==conn.peer)bumSend(conn,{t:'relay',from:id,name:e.name,look:e.lookKey?JSON.parse(e.lookKey):undefined,x:e.targetX,z:e.targetZ,r:e.targetR,f:e.f,a:e.a,deviceId:e.deviceId});
  });
