@@ -1521,7 +1521,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
 renderer.domElement.addEventListener('pointercancel',e=>{activeCanvasPointers.delete(e.pointerId);lookPointer=null});renderer.domElement.addEventListener('lostpointercapture',e=>{activeCanvasPointers.delete(e.pointerId);if(lookPointer===e.pointerId)lookPointer=null});
 renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();orbitDistance+=Math.sign(e.deltaY)*2;clampCamera()},{passive:false});
 // Student emotes: reusable action registry; first action is a celebratory SIUU-style jump.
-const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6},hop:{label:'🦩 Nhảy lò cò 2 vòng',duration:8}};
+const studentActions={siu:{label:'⚽ SIUU! Chạy đà & ăn mừng',duration:3.65},eat:{label:'🍰 Ăn bánh',duration:3},drink:{label:'🧃 Uống nước',duration:3},gift:{label:'💐 Tặng hoa / quà',duration:2.7},hiphop:{label:'🕺 Nhảy hip-hop 6 giây',duration:6},sing:{label:'🎤 Vừa đi vừa hát 6 giây',duration:6},teacher:{label:'👨‍🏫 Giả làm thầy Huy',duration:6},hop:{label:'🦩 Nhảy lò cò 2 vòng',duration:8},juggle:{label:'⚽ Tâng bóng tại chỗ 8 giây',duration:8},giftfood:{label:'🍎 Tặng đồ ăn / nước uống cho bạn',duration:2.7}};
 let studentAction=null;
 const studentActionProp=new THREE.Group();avatar.add(studentActionProp);
 const micStem=new THREE.Mesh(new THREE.CylinderGeometry(.055,.065,.58,10),new THREE.MeshStandardMaterial({color:'#283b50',metalness:.4,roughness:.35}));
@@ -1570,16 +1570,11 @@ function startStudentAction(id,extra={}){
  }
 }
 function chooseStudentAction(id){
- if(id==='eat'||id==='drink'||id==='gift'){
+ if(id==='eat'||id==='drink'||id==='gift'||id==='giftfood'){
   const items=actionOwnedChoices(id==='gift'?'gift':'food').filter(([name])=>id==='eat'?!/nước|sữa|trà|sinh tố|juice/i.test(name):id==='drink'?/nước|sữa|trà|sinh tố|juice/i.test(name):true);
   if(!items.length){dialog('🎒 Tủ đồ trống','Chưa có '+(id==='gift'?'hoa hoặc quà':'đồ ăn / thức uống')+' phù hợp. Hãy đến căn tin hoặc quầy lưu niệm mua trước. Các món mua từ phiên bản này sẽ được thêm vào tủ đồ hành động.',[['Đóng',()=>{}]]);return}
   dialog('🎒 Chọn vật phẩm','Chọn 1 món từ tủ đồ. Mỗi hành động sẽ trừ 1 món.',items.map(([name,n])=>[name+' · còn '+n,()=>{
-   if(id==='gift'){giftRecipient(to=>{
-    if(to.toLocaleLowerCase('vi')===appearance.name.toLocaleLowerCase('vi')){dialog('🎁 Chọn bạn khác','Không thể tự tặng quà cho mình.');return}
-    if(!actionConsume(name))return;
-    actionGive(name,1,to);saveGift(name,to);
-    dialog('💐 Đã tặng quà trên thiết bị này','Đã trừ 1 '+name+' khỏi tủ của '+appearance.name+' và cộng 1 vào tủ của '+to+'. Chưa đồng bộ trực tuyến.',[['Xem hoạt ảnh',()=>startStudentAction('gift',{item:name,recipient:to})]]);
-   })}else{
+   if(id==='gift'||id==='giftfood'){selectOnlineFriendForGift(name)}else{
     if(!actionConsume(name))return;
     startStudentAction(id,{item:name});
    }
@@ -1603,6 +1598,54 @@ function installStudentActions(){
  button.onclick=()=>{menu.hidden=!menu.hidden;menu.style.display=menu.hidden?'none':'flex'};menu.style.display='none';document.body.append(button,menu);
 }
 installStudentActions();
+
+/* Mutual online friendships: both players must approve before gifts are enabled.
+   Peer IDs are temporary, so friendships must be reconfirmed after reconnecting. */
+const onlineFriends=new Set(),friendInvites=new Set(),giftPending=new Map();
+function onlinePeerId(){return bumNet.peer?.id||''}
+function friendWire(data){if(!bumNet.peer)return;if(bumNet.host)bumBroadcast(data);else for(const conn of bumNet.connections.values())bumSend(conn,data)}
+function friendPeers(){return [...bumNet.remotes].filter(([id,e])=>e.f===floor&&performance.now()-e.updated<12000)}
+function friendDialog(){
+ const peers=friendPeers();
+ if(!peers.length){dialog('👫 Kết bạn','Chưa có học sinh khác đang online ở sân trường.');return}
+ dialog('👫 Bạn bè trong sân trường','Chỉ những bạn đã đồng ý kết bạn với nhau mới được nhận quà.',peers.map(([id,e])=>[
+ (onlineFriends.has(id)?'💚 Đã kết bạn · ':friendInvites.has(id)?'⏳ Đã gửi lời mời · ':'➕ Kết bạn · ')+e.name,
+ ()=>{if(onlineFriends.has(id)){dialog('💚 Bạn bè','Hai bạn đã kết bạn và có thể tặng quà cho nhau.');return}friendInvites.add(id);friendWire({t:'friend-request',to:id,from:onlinePeerId()});dialog('📨 Đã gửi lời mời','Đang chờ '+e.name+' đồng ý kết bạn.')}
+ ]))}
+function selectOnlineFriendForGift(item){
+ const peers=friendPeers().filter(([id])=>onlineFriends.has(id));
+ if(!peers.length){dialog('🎁 Chưa có bạn để tặng','Hãy kết bạn hai chiều với học sinh đang online trước nhé!',[['👫 Mở danh sách kết bạn',friendDialog]]);return}
+ dialog('🎁 Tặng '+item,'Chỉ các bạn đã kết bạn và đang online mới xuất hiện.',peers.map(([id,e])=>['🎀 '+e.name,()=>{
+  if(!onlineFriends.has(id)||!actionConsume(item)){dialog('⚠️ Không thể tặng','Bạn đã ngắt kết nối hoặc vật phẩm không còn.');return}
+  const tx=onlinePeerId()+'-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+  giftPending.set(tx,item);friendWire({t:'friend-gift',to:id,from:onlinePeerId(),tx,item});
+  startStudentAction('gift',{item,recipient:e.name});
+  dialog('🎁 Đang gửi quà','Đang chờ xác nhận '+e.name+' nhận '+item+'.');
+ }]))
+}
+function handleFriendWire(id,data){
+ if(!['friend-request','friend-accept','friend-gift','friend-gift-ack'].includes(data.t))return false;
+ if(bumNet.host&&data.to!==onlinePeerId()){if(data.to&&bumNet.connections.has(data.to))bumSend(bumNet.connections.get(data.to),{...data,from:id});return true}
+ if(data.to!==onlinePeerId()||id===onlinePeerId())return true;
+ const sender=bumNet.remotes.get(id),name=sender?.name||'Một bạn học';
+ if(data.t==='friend-request'){
+  if(!sender)return true;
+  dialog('👫 Lời mời kết bạn',name+' muốn kết bạn để cùng chơi và tặng quà.',[['💚 Đồng ý',()=>{onlineFriends.add(id);friendWire({t:'friend-accept',to:id,from:onlinePeerId()})}],['Để sau',()=>{}]]);
+ }else if(data.t==='friend-accept'){
+  if(!friendInvites.has(id))return true;friendInvites.delete(id);onlineFriends.add(id);dialog('🎉 Kết bạn thành công','Bạn và '+name+' đã trở thành bạn bè!');
+ }else if(data.t==='friend-gift'){
+  if(!onlineFriends.has(id)||typeof data.item!=='string'||data.item.length>80||typeof data.tx!=='string')return true;
+  actionGive(data.item,1);friendWire({t:'friend-gift-ack',to:id,from:onlinePeerId(),tx:data.tx});
+  dialog('🎁 Bạn nhận được quà!',name+' đã tặng em '+data.item+'. Món quà đã vào tủ đồ!');
+ }else if(data.t==='friend-gift-ack'){
+  if(giftPending.has(data.tx)){giftPending.delete(data.tx);document.getElementById('tip').textContent='🎁 Tặng quà thành công!'}
+ }
+ return true;
+}
+const friendButton=document.createElement('button');friendButton.textContent='👫 Kết bạn';friendButton.type='button';
+friendButton.style.cssText='position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 76px);z-index:65;padding:9px 12px;border:2px solid #fff;border-radius:18px;background:#225c75;color:white;font:800 13px system-ui;cursor:pointer';
+friendButton.onclick=friendDialog;document.body.append(friendButton);
+
 
 /* Lightweight schoolyard ambience: procedural birds, butterflies, clouds and sunlight.
    All animation runs locally, with no extra network downloads or shadow-map cost. */
@@ -2011,6 +2054,10 @@ if(studentAction){
   arms[0].rotation.x=Math.sin(t*11.5*Math.PI)*.5;
   arms[1].rotation.x=-Math.sin(t*11.5*Math.PI)*.5;
   arms[0].rotation.z=-.6;arms[1].rotation.z=.6;
+ }else if(studentAction.id==='juggle'){
+  const beat=t*10.5;avatar.position.y=Math.abs(Math.sin(beat))*.055;
+  legs[0].rotation.x=-.25-Math.max(0,Math.sin(beat))*.85;legs[1].rotation.x=Math.max(0,Math.sin(beat+Math.PI))*.65;
+  arms[0].rotation.z=-.4;arms[1].rotation.z=.4;
  }else if(studentAction.id==='hiphop'){
   const beat=t*2*Math.PI*1.65;
   avatar.position.y=Math.abs(Math.sin(beat))*.24;
@@ -2121,6 +2168,7 @@ function bumDropRemote(id){const e=bumNet.remotes.get(id);if(!e)return;scene.rem
 function bumReceive(id,data){
  if(!data||typeof data!=='object')return;
  if(sharedMissionHandle(id,data))return;
+ if(handleFriendWire(id,data))return;
  if(data.t==='state'){
   if(!Number.isFinite(data.x)||!Number.isFinite(data.z)||!Number.isFinite(data.r)||!Number.isInteger(data.f)||Math.abs(data.x)>400||Math.abs(data.z)>400)return;
   const e=bumRemote(id);
