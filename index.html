@@ -729,7 +729,6 @@ roomBox(3.4,.5,.17,-18,3.55,11.37,'#237b5e');
 function roomSign(text,x,y,z){const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='#fffbe8';ctx.fillRect(0,0,512,128);ctx.fillStyle='#235b65';ctx.font='bold 55px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,64,480);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.65),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);indoor.add(m);floorMeshes[0].push(m)}
 roomSign('🚪 LỐI RA SÂN TRƯỜNG',-18,3.55,11.55);
 roomBox(5,.3,3,0,.17,-9.4,'#d1a46e');roomBox(2.8,.12,1.2,0,1.15,-9.2,'#9c704d');roomBox(2.6,.85,.3,0,.68,-9.85,'#ba885c');
-const seatedTeacher=new THREE.Group();seatedTeacher.position.set(0,.34,-10.2);indoor.add(seatedTeacher);floorMeshes[0].push(seatedTeacher);part(seatedTeacher,new THREE.CapsuleGeometry(.39,.35,5,12),'#69a6d7',0,1.05,0);part(seatedTeacher,new THREE.SphereGeometry(.38,16,12),'#ffd1aa',0,1.82,0);part(seatedTeacher,new THREE.SphereGeometry(.4,16,10),'#47374b',0,2.04,-.09).scale.y=.52;for(const x of [-.16,.16]){part(seatedTeacher,new THREE.SphereGeometry(.04,8,6),'#26384b',x,1.83,.35);part(seatedTeacher,new THREE.CapsuleGeometry(.13,.3,5,8),'#ffd1aa',x*2.6,.95,.15);part(seatedTeacher,new THREE.CapsuleGeometry(.14,.26,5,8),'#344d86',x,.47,.4)}
 const deskPositions=[];const deskLabels=[];const deskHitMeshes=[];const deskQuestions=[
 {q:'What is 5 + 4?',a:['9','8','10'],correct:0},
 {q:'Which animal says meow?',a:['Dog','Cat','Cow'],correct:1},
@@ -751,7 +750,7 @@ let seatRoster=Array(20).fill(null);
 try{const saved=JSON.parse(localStorage.getItem(seatingStorageKey)||'null');if(Array.isArray(saved))seatRoster=saved.slice(0,20).concat(Array(20).fill(null)).slice(0,20).map(v=>typeof v==='string'?v.slice(0,24):null)}catch{}
 if(claimedDesk!==null){seatRoster[claimedDesk]=appearance.name}
 const ownerBoard=new THREE.Group();ownerBoard.position.set(0,3.05,-11.46);indoor.add(ownerBoard);floorMeshes[0].push(ownerBoard);
-const sayings=[['Có công mài sắt, có ngày nên kim.','Kiên trì sẽ thành công.'],['Học thầy không tày học bạn.','Học hỏi từ bạn bè mỗi ngày.'],['Đi một ngày đàng, học một sàng khôn.','Khám phá để trưởng thành.'],['Tiên học lễ, hậu học văn.','Lễ phép trước, học tập sau.'],['Lá lành đùm lá rách.','Biết yêu thương và giúp đỡ.'],['Uống nước nhớ nguồn.','Luôn biết ơn người giúp mình.'],['Có chí thì nên.','Cố gắng không bỏ cuộc.'],['Ăn quả nhớ kẻ trồng cây.','Biết ơn công sức của mọi người.']];let currentSaying=sayings[0];
+const sayings=[["Có công mài sắt, có ngày nên kim.","Kiên trì sẽ thành công."],["Học thầy không tày học bạn.","Học hỏi từ bạn bè mỗi ngày."],["Đi một ngày đàng, học một sàng khôn.","Khám phá để trưởng thành."],["Tiên học lễ, hậu học văn.","Lễ phép trước, học tập sau."],["Lá lành đùm lá rách.","Biết yêu thương và giúp đỡ."],["Uống nước nhớ nguồn.","Luôn biết ơn người giúp mình."],["Có chí thì nên.","Cố gắng không bỏ cuộc."],["Ăn quả nhớ kẻ trồng cây.","Biết ơn công sức của mọi người."],["Thương người như thể thương thân.","Biết đồng cảm và chia sẻ."],["Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao.","Đoàn kết tạo nên sức mạnh."],["Gần mực thì đen, gần đèn thì sáng.","Chọn bạn tốt, học điều hay."],["Đi hỏi già, về nhà hỏi trẻ.","Lắng nghe mọi người."],["Học ăn, học nói, học gói, học mở.","Rèn luyện cách ứng xử mỗi ngày."],["Đói cho sạch, rách cho thơm.","Giữ lòng trung thực."],["Tốt gỗ hơn tốt nước sơn.","Nhân cách quan trọng hơn vẻ ngoài."],["Chớ thấy sóng cả mà ngã tay chèo.","Đừng bỏ cuộc khi gặp khó."],["Lời nói chẳng mất tiền mua, lựa lời mà nói cho vừa lòng nhau.","Nói lời tử tế."],["Kính trên nhường dưới.","Tôn trọng và quan tâm mọi người."],["Ăn trông nồi, ngồi trông hướng.","Biết ý tứ và lịch sự."],["Thất bại là mẹ thành công.","Học từ sai lầm."],["Chậm mà chắc.","Cẩn thận để tiến bộ."],["Nói lời phải giữ lấy lời.","Giữ lời hứa."],["Gieo nhân nào, gặt quả nấy.","Chịu trách nhiệm với hành động."],["Một điều nhịn, chín điều lành.","Biết bình tĩnh và nhường nhịn."],["Đoàn kết thì sống, chia rẽ thì yếu.","Cùng nhau tiến bộ."],["Muốn biết phải hỏi, muốn giỏi phải học.","Chủ động tìm hiểu."],["Học một biết mười.","Biết suy luận và vận dụng."],["Cẩn tắc vô ưu.","Làm việc cẩn thận."],["Giấy rách phải giữ lấy lề.","Giữ phẩm chất tốt."],["Công cha như núi Thái Sơn, nghĩa mẹ như nước trong nguồn chảy ra.","Biết ơn gia đình."]];let currentSaying=sayings[0];
 function updateOwnerBoard(){while(ownerBoard.children.length){const m=ownerBoard.children[0];ownerBoard.remove(m);m.geometry.dispose();m.material.map?.dispose();m.material.dispose()}const c=document.createElement('canvas');c.width=1536;c.height=512;const ctx=c.getContext('2d');ctx.fillStyle='#194d3c';ctx.fillRect(0,0,1536,512);ctx.strokeStyle='#f4e8bc';ctx.lineWidth=12;ctx.strokeRect(12,12,1512,488);ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff5ca';ctx.font='bold 60px system-ui';ctx.fillText('MỖI NGÀY MỘT ĐIỀU HAY',768,85,1350);ctx.font='bold 70px system-ui';ctx.fillStyle='#fff';const words=currentSaying[0].split(' '),lines=[];let line='';for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>1280&&line){lines.push(line);line=word}else line=test}if(line)lines.push(line);lines.forEach((v,i)=>ctx.fillText(v,768,225-(lines.length-1)*48+i*96,1370));ctx.font='italic 44px system-ui';ctx.fillStyle='#b9e5cb';ctx.fillText(currentSaying[1],768,445,1350);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;ownerBoard.add(new THREE.Mesh(new THREE.PlaneGeometry(19.5,6.6),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide})))}
 function refreshSeatTicker(){const t=document.getElementById('seatTicker');if(!t)return;t.hidden=floor!==0;document.getElementById('seatTickerText').textContent=claimedDesk===null?'🪑 Em chưa chọn bàn':'🪑 '+appearance.name+' · Bàn số '+(claimedDesk+1)}
 function updateDeskOwnership(){
@@ -803,7 +802,7 @@ roomBox(14.3,.13,.25,0,1.48,-11.42,'#d2b47d');
 for(const x of [-23,-11,0,11,23]){roomBox(3.4,.11,1.05,x,4.78,-2,'#d9e0df');roomBox(3.4,.11,1.05,x,4.78,6,'#d9e0df')}
 for(const x of [-24,24]){for(const z of [-7,0,7]){roomBox(.1,2.1,2.2,x,2.7,z,'#d1e5e8');roomBox(.12,.12,2.25,x,3.75,z,'#f7f0df')}}
 
-const classroomTeacher=new THREE.Group();classroomTeacher.position.set(-8,0,-9.5);indoor.add(classroomTeacher);makeTeacher(classroomTeacher);floorMeshes[0].push(classroomTeacher);const indoorPoints=[{id:'exit',x:-18,z:9,label:'🚪 Cửa ra sân trường'},{id:'teacher',x:-8,z:-8.4,label:'👩‍🏫 Giáo viên lớp học'},{id:'library',x:12,z:-10,label:'📚 Góc thư viện'},...deskPositions.map((p,i)=>({id:'desk'+i,x:p.x,z:p.z+2.7,label:'🪑 Bàn học '+(i+1)}))];
+const classroomTeacher=new THREE.Group();classroomTeacher.position.set(0,.32,-9.5);indoor.add(classroomTeacher);makeTeacher(classroomTeacher);floorMeshes[0].push(classroomTeacher);const indoorPoints=[{id:'exit',x:-18,z:9,label:'🚪 Cửa ra sân trường'},{id:'teacher',x:0,z:-7.5,label:'👩‍🏫 Cô Nhi · 10 câu tăng tốc'},{id:'library',x:12,z:-10,label:'📚 Góc thư viện'},...deskPositions.map((p,i)=>({id:'desk'+i,x:p.x,z:p.z+2.7,label:'🪑 Bàn học '+(i+1)}))];
 for(const x of [12,14,16])for(let h=0;h<3;h++)roomBox(1.8,.7,.8,x,.6+h*.8,-10,['#df8d8a','#82b5d8','#f0d279'][h]);
 constructingFloor=-1;syncFloorVisibility();
 function showStudentProfile(i){const name=seatRoster[i];if(!name)return;const ownProfile=claimedDesk===i&&name===appearance.name;dialog('👤 Hồ sơ · '+name,'🪑 Bàn số '+(i+1)+' · Lớp học chuyên môn. '+(ownProfile?saoStatsSummary():'⭐ Thành tích Sao Đỏ: chưa có dữ liệu được xác thực từ người chơi này.')+' Thông tin hiện được lưu trên thiết bị này; chưa xác thực tài khoản hay đồng bộ học sinh trực tuyến.',[['💌 Kết bạn (sắp ra mắt)',()=>dialog('🔒 Chưa mở kết bạn','Tính năng sẽ cần tài khoản xác thực, đồng ý kết bạn hai chiều và quyền kiểm soát của phụ huynh.')],['💬 Trò chuyện (sắp ra mắt)',()=>dialog('🔒 Chưa mở trò chuyện','Trò chuyện giữa học sinh cần cơ chế bảo vệ trẻ em, quyền riêng tư và kiểm duyệt phù hợp trước khi triển khai.')],['↩ Quay lại lớp',()=>{}]])}
@@ -824,7 +823,126 @@ const classroomSubjects={
  {q:'Khi qua đường, em nên làm gì?',a:['Chạy thật nhanh','Quan sát và đi đúng nơi quy định','Nhắm mắt đi'],correct:1},
  {q:'Vứt rác đúng nơi giúp điều gì?',a:['Giữ môi trường sạch','Làm sân trường bẩn','Lãng phí nước'],correct:0}]}
 };
+
+/* Cô Nhi: 10-question speed challenge, 5 minutes, max two starts per Vietnam calendar day.
+   Pools are deterministic generators plus curated grade-level knowledge, with a per-grade seen history. */
+const speedQuizKey='be-bum-speed-quiz-v1';
+let speedQuizSession=null,speedQuizInterval=null;
+function speedQuizToday(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
+function speedQuizStorage(){try{const d=JSON.parse(localStorage.getItem(speedQuizKey)||'{}');return {day:String(d.day||''),used:Math.max(0,Math.min(2,Number(d.used)||0)),seen:d.seen&&typeof d.seen==='object'?d.seen:{}}}catch{return {day:'',used:0,seen:{}}}}
+function speedQuizSave(d){try{localStorage.setItem(speedQuizKey,JSON.stringify(d))}catch{}}
+function speedQuestion(id,q,a,correct){return {id,q,a,correct}}
+function speedPool(grade){
+ const pool=[],add=(id,q,a,correct)=>pool.push(speedQuestion(grade+'-'+id,q,a,correct));
+ if(grade==='1'){
+  for(let a=1;a<=20;a++)for(let b=1;b<=20-a;b++){const n=a+b;add('sum'+a+'-'+b,a+' + '+b+' = ?', [String(n),String(n+1),String(n+2)],0)}
+  for(let a=2;a<=20;a++)for(let b=1;b<a;b++)add('sub'+a+'-'+b,a+' − '+b+' = ?', [String(a-b+1),String(a-b),String(a-b+2)],1);
+  const facts=[
+   ['Đèn giao thông màu đỏ có nghĩa là gì?',['Dừng lại','Đi nhanh','Rẽ bất kỳ'],0],
+   ['Khi gặp thầy cô, em nên làm gì?',['Chạy đi','Chào lễ phép','La hét'],1],
+   ['Một tuần có bao nhiêu ngày?',['5','6','7'],2],
+   ['Bộ phận nào giúp chúng ta nghe?',['Tai','Mắt','Mũi'],0],
+   ['Khi nhặt được đồ của bạn, em nên làm gì?',['Giữ luôn','Trả lại','Vứt đi'],1],
+   ['Con vật nào kêu meo meo?',['Chó','Mèo','Bò'],1],
+   ['Hình tam giác có mấy cạnh?',['3','4','5'],0],
+   ['Which word means “con mèo”?',['Cat','Dog','Bird'],0],
+   ['Which color is the sky on a clear day?',['Green','Blue','Red'],1],
+   ['Which word means “cảm ơn”?',['Please','Sorry','Thank you'],2],
+   ['Từ nào viết đúng chính tả?',['chăm chỉ','chăm chĩ','trăm chỉ'],0],
+   ['Khi bị lạc, em nên làm gì?',['Nhờ người lớn đáng tin cậy giúp','Đi theo người lạ','Chạy ra đường'],0],
+   ['Nên làm gì trước khi ăn?',['Rửa tay','Chạy nhảy','Bỏ bữa'],0]
+  ];facts.forEach((v,i)=>add('fact'+i,v[0],v[1],v[2]));
+ }else if(grade==='5'){
+  for(let a=12;a<=90;a+=3)for(let b=2;b<=12;b++){const n=a*b;add('mul'+a+'-'+b,a+' × '+b+' = ?',[String(n- b),String(n),String(n+b)],1)}
+  for(let a=20;a<=100;a+=4)for(let b=2;b<=10;b++){const n=a*b;add('div'+a+'-'+b,n+' ÷ '+b+' = ?',[String(a),String(a+1),String(a-1)],0)}
+  for(let a=10;a<=90;a+=5){const n=a/100;add('pct'+a,a+'% của 200 là bao nhiêu?',[String(a),String(a*2),String(a/2)],1)}
+  const facts=[
+   ['Diện tích hình tam giác được tính bằng công thức nào?',['Đáy × chiều cao ÷ 2','Đáy + chiều cao','Đáy × chiều cao × 2'],0],
+   ['1 km bằng bao nhiêu mét?',['100','1.000','10.000'],1],
+   ['Trong chuỗi thức ăn, thực vật thường là gì?',['Sinh vật sản xuất','Sinh vật tiêu thụ','Sinh vật phân giải'],0],
+   ['Nước sôi ở khoảng bao nhiêu °C tại áp suất khí quyển tiêu chuẩn?',['0°C','50°C','100°C'],2],
+   ['Đâu là một nguồn năng lượng tái tạo?',['Than đá','Ánh sáng mặt trời','Dầu mỏ'],1],
+   ['Từ “dũng cảm” gần nghĩa nhất với từ nào?',['Can đảm','Lo lắng','Thờ ơ'],0],
+   ['Which sentence is grammatically correct?',['She go to school.','She goes to school.','She going school.'],1],
+   ['What is the past tense of “go”?',['Goed','Went','Gone'],1],
+   ['Khi đọc tin trên mạng, nên làm gì?',['Kiểm tra nguồn tin','Chia sẻ ngay','Tin mọi tiêu đề'],0],
+   ['Phân số nào bằng 1/2?',['2/4','2/3','3/4'],0],
+   ['Hình hộp chữ nhật có bao nhiêu mặt?',['4','6','8'],1],
+   ['Khi làm việc nhóm, điều nào là phù hợp?',['Lắng nghe ý kiến khác','Ngắt lời','Không hợp tác'],0]
+  ];facts.forEach((v,i)=>add('fact'+i,v[0],v[1],v[2]));
+ }else{
+  for(let a=2;a<=30;a++)for(let b=1;b<=18;b++){const n=2*a+b;add('linear'+a+'-'+b,'Giải phương trình 2x + '+b+' = '+n+'. x = ?', [String(a+1),String(a),String(a-1)],1)}
+  for(let a=2;a<=25;a++)for(let b=2;b<=15;b++){const n=a*a+b*b;add('pyth'+a+'-'+b,'Tam giác vuông có hai cạnh góc vuông '+a+' và '+b+'. Bình phương cạnh huyền bằng?', [String(n),String(a+b),String(a*b)],0)}
+  for(let a=2;a<=20;a++)for(let b=2;b<=10;b++){const n=a*b;add('deriv'+a+'-'+b,'Đạo hàm của f(x) = '+a+'x² + '+b+'x là?', [a+'x + '+b,2*a+'x + '+b,2*a+'x² + '+b],1)}
+  const facts=[
+   ['Theo định luật II Newton, hệ thức nào đúng?',['F = ma','F = m/a','F = a/m'],0],
+   ['Đơn vị SI của điện trở là gì?',['Vôn','Ôm','Ampe'],1],
+   ['Trong ADN, A bắt cặp với bazơ nào?',['G','C','T'],2],
+   ['Số oxi hóa của oxi trong H₂O là bao nhiêu?',['−2','+2','0'],0],
+   ['Tác phẩm “Truyện Kiều” do ai sáng tác?',['Nguyễn Du','Nguyễn Trãi','Hồ Xuân Hương'],0],
+   ['Cách mạng tháng Tám ở Việt Nam diễn ra năm nào?',['1930','1945','1954'],1],
+   ['Trong hệ trục Oxy, hệ số góc của y = 3x − 2 là?',['−2','2','3'],2],
+   ['Giá trị của log₁₀(1000) là?',['2','3','10'],1],
+   ['Đạo hàm của sin(x) là?',['cos(x)','−cos(x)','−sin(x)'],0],
+   ['Quá trình nguyên phân tạo ra bao nhiêu tế bào con từ một tế bào mẹ?',['2','3','4'],0],
+   ['Trong tiếng Anh, câu điều kiện loại 1 dùng để diễn tả điều gì?',['Điều có thể xảy ra trong tương lai','Điều không có thật ở quá khứ','Sự thật trái ngược hiện tại'],0],
+   ['Khi nghiên cứu khoa học, nguồn nào đáng tin cậy hơn?',['Bài báo có bình duyệt','Tin đồn','Bình luận ẩn danh'],0],
+   ['Độ pH của dung dịch trung tính ở 25°C xấp xỉ bằng?',['3','7','11'],1],
+   ['Hàm số y = x² đạt giá trị nhỏ nhất bằng bao nhiêu trên R?',['0','1','−1'],0]
+  ];facts.forEach((v,i)=>add('fact'+i,v[0],v[1],v[2]));
+ }
+ return pool;
+}
+function speedQuizShuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function speedQuizClose(){if(speedQuizInterval){clearInterval(speedQuizInterval);speedQuizInterval=null}speedQuizSession=null}
+function openSpeedQuizMenu(){
+ if(speedQuizSession){speedQuizRender();return}
+ const d=speedQuizStorage(),used=d.day===speedQuizToday()?d.used:0;
+ dialog('👩‍🏫 Cô Nhi · 10 CÂU TĂNG TỐ','Mỗi lượt gồm 10 câu hỏi, tối đa 5 phút. Mỗi học sinh được tham gia tối đa 2 lượt/ngày trên thiết bị này. Đã tham gia: '+used+'/2 lượt. Chọn bộ đề phù hợp:',[
+ ['📘 Bộ đề lớp 1',()=>speedQuizStart('1')],
+ ['📗 Bộ đề lớp 5',()=>speedQuizStart('5')],
+ ['📕 Bộ đề lớp 12+',()=>speedQuizStart('12')],
+ ['📚 Học môn khác',()=>openClassroomSubjectMenu()]
+ ]);
+}
+function speedQuizStart(grade){
+ const d=speedQuizStorage(),today=speedQuizToday();if(d.day!==today){d.day=today;d.used=0}
+ if(d.used>=2){dialog('⏳ Hết lượt hôm nay','Em đã tham gia đủ 2 lượt tăng tốc. Ngày mai hãy quay lại gặp cô Nhi nhé.',[['Đã hiểu',()=>{}]]);return}
+ const pool=speedPool(grade),seen=new Set(Array.isArray(d.seen[grade])?d.seen[grade]:[]);
+ let available=pool.filter(q=>!seen.has(q.id));
+ if(available.length<10){seen.clear();available=pool.slice()}
+ const chosen=speedQuizShuffle(available).slice(0,10).map(q=>({...q,a:q.a.slice()}));
+ chosen.forEach(q=>seen.add(q.id));d.seen[grade]=Array.from(seen).slice(-pool.length);
+ d.used++;speedQuizSave(d);
+ speedQuizSession={grade,questions:chosen,index:0,correct:0,deadline:Date.now()+300000,answers:[]};
+ speedQuizInterval=setInterval(()=>{if(!speedQuizSession)return;const remaining=Math.max(0,Math.ceil((speedQuizSession.deadline-Date.now())/1000));const timer=document.getElementById('speedQuizTimer');if(timer)timer.textContent='⏱ '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');if(!remaining)speedQuizFinish(true)},250);
+ speedQuizRender();
+}
+function speedQuizRender(){
+ const session=speedQuizSession;if(!session)return;
+ if(Date.now()>=session.deadline){speedQuizFinish(true);return}
+ const q=session.questions[session.index];
+ dialog('⚡ Cô Nhi · Lớp '+(session.grade==='12'?'12+':session.grade)+' · Câu '+(session.index+1)+'/10',q.q,q.a.map((answer,i)=>[String.fromCharCode(65+i)+'. '+answer,()=>speedQuizAnswer(i)]).concat([['⏹ Nộp bài sớm',()=>speedQuizFinish(false)]]));
+ const timer=document.createElement('div');timer.id='speedQuizTimer';timer.style.cssText='font-weight:800;color:#bd4d28;margin:12px 0;font-size:20px';document.getElementById('message').append(document.createElement('br'),timer);
+ const remaining=Math.max(0,Math.ceil((session.deadline-Date.now())/1000));timer.textContent='⏱ '+Math.floor(remaining/60)+':'+String(remaining%60).padStart(2,'0');
+}
+function speedQuizAnswer(answer){
+ const session=speedQuizSession;if(!session)return;if(Date.now()>=session.deadline){speedQuizFinish(true);return}
+ const q=session.questions[session.index];if(answer===q.correct)session.correct++;
+ session.answers.push({id:q.id,answer,correct:q.correct});session.index++;
+ if(session.index===10)speedQuizFinish(false);else speedQuizRender();
+}
+function speedQuizFinish(expired){
+ const session=speedQuizSession;if(!session)return;const answered=session.index,correct=session.correct;speedQuizClose();
+ dialog('🏁 KẾT QUẢ 10 CÂU TĂNG TỐ','Bộ đề lớp '+(session.grade==='12'?'12+':session.grade)+' · Đúng '+correct+'/10 câu · Đã trả lời '+answered+'/10.'+(expired?' Hết 5 phút!':'')+'\nLượt đã được ghi nhận. Cô Nhi khuyến khích em luyện tập mỗi ngày.',[['👩‍🏫 Gặp lại cô Nhi',openSpeedQuizMenu],['Đóng',()=>{}]]);
+}
+function openClassroomSubjectMenu(){
+ dialog('📚 Các tiết học khác','Em có thể học các môn như trước.',[
+ ['🔢 Toán',()=>runClassroomSubject('math')],['🇺🇸 Tiếng Anh',()=>runClassroomSubject('english')],['🌱 Khám phá',()=>runClassroomSubject('discovery')],['💬 Trò chuyện',teacherChallenge]
+ ]);
+}
 function openClassroomTeacher(){
+ openSpeedQuizMenu();return;
  dialog('👩‍🏫 Chọn tiết học','Em muốn học môn nào hôm nay? Mỗi tiết có 3 câu hỏi và có thể thử lại.',[
  ['🔢 Toán · Cô giáo Toán',()=>runClassroomSubject('math')],
  ['🇺🇸 Tiếng Anh · Cô giáo Tiếng Anh',()=>runClassroomSubject('english')],
