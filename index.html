@@ -386,15 +386,61 @@ function preferredVietnameseVoice(){
  const southern=/miền nam|mien nam|southern|south vietnam|sài gòn|sai gon|saigon|ho chi minh|hồ chí minh|hcmc|nam bộ|nam bo/i;
  return voices.find(v=>v.voiceURI===saved)||voices.find(v=>southern.test(v.name))||voices.find(v=>v.lang.toLowerCase()==='vi-vn')||voices[0]||null;
 }
-function speakGameVietnamese(message,options={}){
- try{
-  if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return null;
-  const synth=window.speechSynthesis,chosen=preferredVietnameseVoice();
-  if(!chosen){console.warn('No Vietnamese TTS voice installed. Avoiding foreign-accent fallback.');return null}
-  const speech=new SpeechSynthesisUtterance(String(message));
-  speech.lang='vi-VN';speech.voice=chosen;speech.rate=options.rate??GAME_VOICE_POLICY.rate;
-  speech.pitch=1;speech.volume=1;synth.cancel();synth.speak(speech);return speech;
- }catch(e){console.warn('Game voice unavailable',e);return null}
+// Shared hybrid audio engine: prerecorded MP3 for fixed lines, secure TTS API for dynamic lines.
+// Configure window.BUM_AUDIO_CONFIG before this script. Never expose provider credentials in client code.
+const BUM_AUDIO_CONFIG=window.BUM_AUDIO_CONFIG||{};
+const BUM_AUDIO_MANIFEST=window.BUM_AUDIO_MANIFEST||{};
+let bumAudio=null,bumAudioSequence=0;
+function stopGameSpeech(){
+ bumAudioSequence++;
+ if(bumAudio){bumAudio.pause();bumAudio.src='';bumAudio=null}
+ if('speechSynthesis' in window)window.speechSynthesis.cancel();
+}
+async function playBumAudioUrl(url,sequence){
+ if(sequence!==bumAudioSequence)return false;
+ const audio=new Audio(url);audio.preload='auto';bumAudio=audio;
+ try{await audio.play();return sequence===bumAudioSequence}catch(e){console.warn('MP3 playback unavailable',e);return false}
+}
+function browserVietnameseSpeech(message,options={}){
+ if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return null;
+ const chosen=preferredVietnameseVoice();
+ if(!chosen)return null;
+ const speech=new SpeechSynthesisUtterance(String(message));
+ speech.lang='vi-VN';speech.voice=chosen;speech.rate=options.rate??GAME_VOICE_POLICY.rate;speech.pitch=1;speech.volume=1;
+ window.speechSynthesis.speak(speech);return speech;
+}
+async function speakGameVietnamese(message,options={}){
+ const text=String(message||'').trim();if(!text)return null;
+ stopGameSpeech();const sequence=bumAudioSequence;
+ const assetKey=options.assetKey;
+ // Static recordings take priority and work without installing voices on Windows.
+ if(assetKey&&Object.prototype.hasOwnProperty.call(BUM_AUDIO_MANIFEST,assetKey)){
+  const path=BUM_AUDIO_MANIFEST[assetKey];
+  if(typeof path==='string'&&path.startsWith('audio/')){
+   if(await playBumAudioUrl(path,sequence))return {source:'mp3',path};
+  }
+ }
+ if(sequence!==bumAudioSequence)return null;
+ // Dynamic content: POST only to an explicitly configured HTTPS backend, not the TTS provider.
+ const endpoint=BUM_AUDIO_CONFIG.endpoint;
+ if(typeof endpoint==='string'&&/^https:\/\//.test(endpoint)&&text.length<=350){
+  try{
+   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),6500);
+   let response;
+   try{response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,voice:'vi-south',purpose:options.purpose||'game'}),signal:controller.signal})}
+   finally{clearTimeout(timer)}
+   if(sequence!==bumAudioSequence)return null;
+   if(response.ok){
+    const payload=await response.json();
+    const url=payload&&payload.audioUrl;
+    if(typeof url==='string'&&/^https:\/\//.test(url)&&await playBumAudioUrl(url,sequence))return {source:'ai',path:url};
+   }
+  }catch(e){console.warn('Vietnamese TTS service unavailable',e)}
+ }
+ if(sequence!==bumAudioSequence)return null;
+ const speech=browserVietnameseSpeech(text,options);
+ if(!speech)console.warn('No Southern Vietnamese MP3, configured TTS backend, or Vietnamese browser voice available');
+ return speech;
 }
 function openGameVoiceSettings(){
  let panel=document.getElementById('gameVoicePanel');
@@ -446,7 +492,7 @@ function announceSaoCapture(name){
  const duration=Math.max(6500,Math.min(11500,distance/145*1000));
  label.style.transition='left '+duration+'ms linear';label.style.left='-'+label.getBoundingClientRect().width+'px';
  clearTimeout(saoAnnouncementTimer);saoAnnouncementTimer=setTimeout(()=>bar.style.display='none',duration+250);
- speakGameVietnamese(announcement);
+ speakGameVietnamese(announcement,{purpose:'sao-do'});
 }
 function saoPenalty(){
  announceSaoCapture(appearance.name);
@@ -836,7 +882,7 @@ function updateOwnerBoard(){
 let classroomSpeech=null;
 function readClassroomSaying(){
  const phrase=currentSaying&&currentSaying[0];if(!phrase)return;
- classroomSpeech=speakGameVietnamese('Mỗi ngày một điều hay. '+phrase+'. '+currentSaying[1]);
+ classroomSpeech=speakGameVietnamese('Mỗi ngày một điều hay. '+phrase+'. '+currentSaying[1],{assetKey:'proverb-'+sayings.indexOf(currentSaying),purpose:'proverb'});
 }
 function refreshSeatTicker(){const t=document.getElementById('seatTicker');if(!t)return;t.hidden=floor!==0;document.getElementById('seatTickerText').textContent=claimedDesk===null?'🪑 Em chưa chọn bàn':'🪑 '+appearance.name+' · Bàn số '+(claimedDesk+1)}
 function updateDeskOwnership(){
