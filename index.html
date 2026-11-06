@@ -377,6 +377,22 @@ function saoFlash(message){
 }
 // Public in-game announcement: visible marquee + browser Vietnamese text-to-speech.
 let saoAnnouncementTimer=0;
+// Central voice policy for every spoken game feature (including future announcements).
+const GAME_VOICE_POLICY=Object.freeze({lang:'vi-VN',rate:.88,pitch:1,volume:1,accent:'southern-preferred'});
+function speakGameVietnamese(message,options={}){
+ try{
+  if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return null;
+  const synth=window.speechSynthesis;
+  const voices=synth.getVoices(),vietnamese=voices.filter(v=>String(v.lang).toLowerCase().startsWith('vi'));
+  const southern=/miền nam|mien nam|southern|south vietnam|sài gòn|sai gon|saigon|ho chi minh|hồ chí minh|hcmc|nam bộ|nam bo/i;
+  const chosen=vietnamese.find(v=>southern.test(v.name))||vietnamese.find(v=>v.lang.toLowerCase()==='vi-vn')||vietnamese[0];
+  const speech=new SpeechSynthesisUtterance(String(message));
+  speech.lang=GAME_VOICE_POLICY.lang;speech.rate=options.rate??GAME_VOICE_POLICY.rate;
+  speech.pitch=GAME_VOICE_POLICY.pitch;speech.volume=GAME_VOICE_POLICY.volume;
+  if(chosen)speech.voice=chosen;
+  synth.cancel();synth.speak(speech);return speech;
+ }catch(e){console.warn('Game voice unavailable',e);return null}
+}
 function announceSaoCapture(name){
  const safeName=String(name||'Học sinh').trim().slice(0,32)||'Học sinh';
  const announcement=safeName+' - đã bị sao đỏ bắt được';
@@ -388,9 +404,7 @@ function announceSaoCapture(name){
  const duration=Math.max(6500,Math.min(11500,distance/145*1000));
  label.style.transition='left '+duration+'ms linear';label.style.left='-'+label.getBoundingClientRect().width+'px';
  clearTimeout(saoAnnouncementTimer);saoAnnouncementTimer=setTimeout(()=>bar.style.display='none',duration+250);
- try{if('speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined'){
-  window.speechSynthesis.cancel();const voice=new SpeechSynthesisUtterance(announcement);voice.lang='vi-VN';voice.rate=.9;voice.pitch=1;voice.volume=1;window.speechSynthesis.speak(voice)
- }}catch(e){console.warn('Voice announcement unavailable',e)}
+ speakGameVietnamese(announcement);
 }
 function saoPenalty(){
  announceSaoCapture(appearance.name);
@@ -780,20 +794,7 @@ function updateOwnerBoard(){
 let classroomSpeech=null;
 function readClassroomSaying(){
  const phrase=currentSaying&&currentSaying[0];if(!phrase)return;
- const spoken='Mỗi ngày một điều hay. '+phrase+'. '+currentSaying[1];
- try{
-  if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined')return;
-  window.speechSynthesis.cancel();
-  const utterance=new SpeechSynthesisUtterance(spoken);
-  utterance.lang='vi-VN';utterance.rate=.88;utterance.pitch=1;utterance.volume=1;
-  const voices=window.speechSynthesis.getVoices();
-  // Prefer explicitly southern/Saigon-accent Vietnamese voices when available.
-  const vietnamese=voices.filter(v=>v.lang.toLowerCase().startsWith('vi'));
-  const southern=/miền nam|mien nam|southern|south vietnam|sài gòn|sai gon|saigon|ho chi minh|hồ chí minh|hcmc|nam bộ|nam bo/i;
-  const vi=vietnamese.find(v=>southern.test(v.name))||vietnamese.find(v=>v.lang.toLowerCase()==='vi-vn')||vietnamese[0];
-  if(vi)utterance.voice=vi;
-  classroomSpeech=utterance;window.speechSynthesis.speak(utterance);
- }catch(e){console.warn('Không thể đọc câu tục ngữ',e)}
+ classroomSpeech=speakGameVietnamese('Mỗi ngày một điều hay. '+phrase+'. '+currentSaying[1]);
 }
 function refreshSeatTicker(){const t=document.getElementById('seatTicker');if(!t)return;t.hidden=floor!==0;document.getElementById('seatTickerText').textContent=claimedDesk===null?'🪑 Em chưa chọn bàn':'🪑 '+appearance.name+' · Bàn số '+(claimedDesk+1)}
 function updateDeskOwnership(){
