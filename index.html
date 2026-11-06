@@ -1883,6 +1883,7 @@ let surpriseActive=-1,surpriseTravel=0,surpriseLastX=player.position.x,surpriseL
 function surpriseRandom(max){const n=new Uint32Array(1);if(window.crypto?.getRandomValues)window.crypto.getRandomValues(n);else n[0]=Math.floor(Math.random()*4294967296);return n[0]%max}
 // One shared mission is issued and awarded by the elected WebRTC room host.
 let sharedMission=null,sharedMissionSeq=0,sharedMissionClaimed=false,sharedMissionLocalDeadline=0;
+let surpriseTargetMode=false; // Keep this declared before the render loop reads it.
 const SHARED_MISSION_WINDOW_MS=7000;
 const missionCountdown=document.createElement('div');missionCountdown.id='missionCountdown';missionCountdown.hidden=true;missionCountdown.style.cssText='font-weight:900;font-size:18px;color:#a23b20;margin:5px auto';surpriseNotice.insertBefore(missionCountdown,surpriseNotice.querySelector('button'));
 function sharedMissionSend(message){if(!bumNet.peer)return;if(bumNet.host)bumBroadcast(message);else for(const conn of bumNet.connections.values())bumSend(conn,message)}
