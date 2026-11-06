@@ -1529,6 +1529,7 @@ micStem.position.y=.1;studentActionProp.add(micStem);
 const micHead=new THREE.Mesh(new THREE.SphereGeometry(.12,12,10),new THREE.MeshStandardMaterial({color:'#c4d2dd',metalness:.55,roughness:.3}));
 micHead.position.y=.45;studentActionProp.add(micHead);
 studentActionProp.position.set(-.37,1.65,.4);studentActionProp.visible=false;
+const jugglingBall=new THREE.Mesh(new THREE.SphereGeometry(.24,16,12),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.6}));jugglingBall.visible=false;scene.add(jugglingBall);
 // Local inventory uses the existing souvenir ledger; online gift delivery is not implemented.
 const actionInventoryKey='be-bum-action-inventory-v1';
 function actionStock(){
@@ -1560,6 +1561,7 @@ function startStudentAction(id,extra={}){
   for(let i=0;i<96;i++){const a=startAngle+i/96*Math.PI*2;if(blocked(cx+radius*Math.cos(a),cz+radius*Math.sin(a))){document.getElementById('tip').textContent='⚠️ Cần khoảng sân trống để nhảy lò cò 2 vòng';return}}
   extra={...extra,cx,cz,radius,startAngle,startX:player.position.x,startZ:player.position.z};
  }
+ jugglingBall.visible=id==='juggle';
  studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false,...extra};
  const menu=document.getElementById('studentActionMenu');if(menu){menu.hidden=true;menu.style.display='none'};
  document.getElementById('tip').textContent=studentActions[id].label;
@@ -1627,15 +1629,16 @@ function handleFriendWire(id,data){
  if(!['friend-request','friend-accept','friend-gift','friend-gift-ack'].includes(data.t))return false;
  if(bumNet.host&&data.to!==onlinePeerId()){if(data.to&&bumNet.connections.has(data.to))bumSend(bumNet.connections.get(data.to),{...data,from:id});return true}
  if(data.to!==onlinePeerId()||id===onlinePeerId())return true;
- const sender=bumNet.remotes.get(id),name=sender?.name||'Một bạn học';
+ const senderId=(!bumNet.host&&typeof data.from==='string')?data.from:id;
+ const sender=bumNet.remotes.get(senderId),name=sender?.name||'Một bạn học';
  if(data.t==='friend-request'){
   if(!sender)return true;
-  dialog('👫 Lời mời kết bạn',name+' muốn kết bạn để cùng chơi và tặng quà.',[['💚 Đồng ý',()=>{onlineFriends.add(id);friendWire({t:'friend-accept',to:id,from:onlinePeerId()})}],['Để sau',()=>{}]]);
+  dialog('👫 Lời mời kết bạn',name+' muốn kết bạn để cùng chơi và tặng quà.',[['💚 Đồng ý',()=>{onlineFriends.add(senderId);friendWire({t:'friend-accept',to:senderId,from:onlinePeerId()})}],['Để sau',()=>{}]]);
  }else if(data.t==='friend-accept'){
-  if(!friendInvites.has(id))return true;friendInvites.delete(id);onlineFriends.add(id);dialog('🎉 Kết bạn thành công','Bạn và '+name+' đã trở thành bạn bè!');
+  if(!friendInvites.has(senderId))return true;friendInvites.delete(senderId);onlineFriends.add(senderId);dialog('🎉 Kết bạn thành công','Bạn và '+name+' đã trở thành bạn bè!');
  }else if(data.t==='friend-gift'){
-  if(!onlineFriends.has(id)||typeof data.item!=='string'||data.item.length>80||typeof data.tx!=='string')return true;
-  actionGive(data.item,1);friendWire({t:'friend-gift-ack',to:id,from:onlinePeerId(),tx:data.tx});
+  if(!onlineFriends.has(senderId)||typeof data.item!=='string'||data.item.length>80||typeof data.tx!=='string')return true;
+  actionGive(data.item,1);friendWire({t:'friend-gift-ack',to:senderId,from:onlinePeerId(),tx:data.tx});
   dialog('🎁 Bạn nhận được quà!',name+' đã tặng em '+data.item+'. Món quà đã vào tủ đồ!');
  }else if(data.t==='friend-gift-ack'){
   if(giftPending.has(data.tx)){giftPending.delete(data.tx);document.getElementById('tip').textContent='🎁 Tặng quà thành công!'}
@@ -2040,6 +2043,7 @@ const norm=Math.max(1,Math.hypot(dx,dz)),vx=dx/norm*speed*dt,vz=dz/norm*speed*dt
 if(studentAction){
  const t=(performance.now()-studentAction.started)/1000;
  if(t>=studentActions[studentAction.id].duration){
+  jugglingBall.visible=false;
   if(studentAction.id==='hop'){player.position.x=studentAction.startX;player.position.z=studentAction.startZ;document.getElementById('tip').textContent='✅ Đã nhảy lò cò đủ 2 vòng!'}
   if(studentAction.id==='teacher'){const caption=document.getElementById('teacherRoleplayCaption');if(caption)caption.remove()}studentAction=null;studentActionProp.visible=false;avatar.rotation.y=0;avatar.rotation.z=0;avatar.position.y=0;
   arms[0].rotation.x=0;arms[1].rotation.x=0;arms[0].rotation.z=0;arms[1].rotation.z=0;
@@ -2055,6 +2059,9 @@ if(studentAction){
   arms[1].rotation.x=-Math.sin(t*11.5*Math.PI)*.5;
   arms[0].rotation.z=-.6;arms[1].rotation.z=.6;
  }else if(studentAction.id==='juggle'){
+  jugglingBall.visible=true;
+  jugglingBall.position.set(player.position.x+Math.sin(player.rotation.y)*.55, .34+Math.abs(Math.sin(t*10.5))*1.35,player.position.z+Math.cos(player.rotation.y)*.55);
+  jugglingBall.rotation.x+=dt*8;
   const beat=t*10.5;avatar.position.y=Math.abs(Math.sin(beat))*.055;
   legs[0].rotation.x=-.25-Math.max(0,Math.sin(beat))*.85;legs[1].rotation.x=Math.max(0,Math.sin(beat+Math.PI))*.65;
   arms[0].rotation.z=-.4;arms[1].rotation.z=.4;
