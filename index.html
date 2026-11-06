@@ -775,7 +775,10 @@ let state={started:false,clues:[],complete:false,anStarted:false,anClues:[],anCo
 function save(){localStorage.setItem('minh-huy-school-alpha',JSON.stringify(state));update()}const npcMissionKey='be-bum-npc-missions-v1';
 function npcMissionProgress(){try{return JSON.parse(localStorage.getItem(npcMissionKey)||'{}')||{}}catch{return {}}}
 function npcMissionBonus(){return Object.values(npcMissionProgress()).reduce((n,v)=>n+(Number(v)||0),0)}
-function earnedXP(){return (state.complete?60:0)+(state.anComplete?40:0)+(state.quizDone?30:0)+(state.lessonDone?50:0)+(state.libraryDone?40:0)+(typeof basketAwarded==='number'?basketAwarded:0)+npcMissionBonus()}const xpSpentKey='be-bum-xp-spent-v1';function spentXP(){return Math.max(0,Number(localStorage.getItem(xpSpentKey))||0)}function availableXP(){return Math.max(0,earnedXP()-spentXP())}function spendXP(cost){if(availableXP()<cost)return false;localStorage.setItem(xpSpentKey,String(spentXP()+cost));update();return true}function update(){const xp=availableXP(),level=1+Math.floor(earnedXP()/100);checkLevelWheel();document.getElementById('progress').textContent=state.libraryDone&&state.lessonDone?'🏆 Alpha 0.4 hoàn thành':state.quizDone?'📚 Khám phá lớp học':state.anComplete?'🏫 Vào tòa nhà học':state.anStarted?'📗 Cô Nhi: '+state.anClues.length+'/2':state.complete?'🏆 Nội quy xong · Gặp cô Nhi':state.started?'⭐ Nhập học: '+state.clues.length+'/2':'⭐ Gặp thầy Huy';document.getElementById('level').firstChild.textContent='Cấp '+level+' · '+xp+' XP';document.getElementById('xpbar').style.width=(xp%100)+'%';const mission=document.getElementById('missionTracker');if(mission)mission.textContent=!readStudentCode()?'👨‍🏫 NHIỆM VỤ: Gặp thầy Huy, đọc thuộc nội quy và trả bài':!greetedGuard?'🙇 NHIỆM VỤ: Đến cổng trường, cúi đầu chào thầy giám thị':!state.started?'👨‍🏫 NHIỆM VỤ: Đọc nội quy với thầy Huy':!state.complete?'👨‍🏫 NHIỆM VỤ: Hoàn thành kiểm tra nội quy':!state.anStarted?'👩‍🏫 NHIỆM VỤ: Gặp cô Nhi trước lớp':!state.anComplete?'🌸 CÔ NHI: Tìm hoa và cây tri thức ('+state.anClues.length+'/2)':!state.lessonDone?'🏫 NHIỆM VỤ: Vào lớp và chọn bàn học':state.libraryDone?'🏆 Đã hoàn thành các nhiệm vụ':'🏆 Đã hoàn thành các nhiệm vụ chính'}
+const surpriseKey='be-bum-surprise-missions-v1';
+function surpriseStateRead(){try{const v=JSON.parse(localStorage.getItem(surpriseKey)||'{}');return {xp:Number(v.xp)||0,done:Array.isArray(v.done)?v.done:[]}}catch{return {xp:0,done:[]}}}
+let surpriseState=surpriseStateRead();
+function earnedXP(){return (state.complete?60:0)+(state.anComplete?40:0)+(state.quizDone?30:0)+(state.lessonDone?50:0)+(state.libraryDone?40:0)+(typeof basketAwarded==='number'?basketAwarded:0)+npcMissionBonus()+surpriseState.xp}const xpSpentKey='be-bum-xp-spent-v1';function spentXP(){return Math.max(0,Number(localStorage.getItem(xpSpentKey))||0)}function availableXP(){return Math.max(0,earnedXP()-spentXP())}function spendXP(cost){if(availableXP()<cost)return false;localStorage.setItem(xpSpentKey,String(spentXP()+cost));update();return true}function update(){const xp=availableXP(),level=1+Math.floor(earnedXP()/100);checkLevelWheel();document.getElementById('progress').textContent=state.libraryDone&&state.lessonDone?'🏆 Alpha 0.4 hoàn thành':state.quizDone?'📚 Khám phá lớp học':state.anComplete?'🏫 Vào tòa nhà học':state.anStarted?'📗 Cô Nhi: '+state.anClues.length+'/2':state.complete?'🏆 Nội quy xong · Gặp cô Nhi':state.started?'⭐ Nhập học: '+state.clues.length+'/2':'⭐ Gặp thầy Huy';document.getElementById('level').firstChild.textContent='Cấp '+level+' · '+xp+' XP';document.getElementById('xpbar').style.width=(xp%100)+'%';const mission=document.getElementById('missionTracker');if(mission)mission.textContent=!readStudentCode()?'👨‍🏫 NHIỆM VỤ: Gặp thầy Huy, đọc thuộc nội quy và trả bài':!greetedGuard?'🙇 NHIỆM VỤ: Đến cổng trường, cúi đầu chào thầy giám thị':!state.started?'👨‍🏫 NHIỆM VỤ: Đọc nội quy với thầy Huy':!state.complete?'👨‍🏫 NHIỆM VỤ: Hoàn thành kiểm tra nội quy':!state.anStarted?'👩‍🏫 NHIỆM VỤ: Gặp cô Nhi trước lớp':!state.anComplete?'🌸 CÔ NHI: Tìm hoa và cây tri thức ('+state.anClues.length+'/2)':!state.lessonDone?'🏫 NHIỆM VỤ: Vào lớp và chọn bàn học':state.libraryDone?'🏆 Đã hoàn thành các nhiệm vụ':'🏆 Đã hoàn thành các nhiệm vụ chính'}
 
 /* Level-up prize wheel: one earned spin for each new level. */
 const wheelKey='be-bum-level-wheel-v1';
@@ -1798,7 +1801,72 @@ function updateAmbientPupils(t,dt){
  }
 }
 
-const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);updateSchoolNature(clock.elapsedTime);updateAmbientPupils(clock.elapsedTime,dt);updateNpcMissionProximity();bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
+
+/* Surprise educational quests: randomized on gameplay movement, not on a clock. */
+const surpriseQuests=[
+ {emoji:'🤝',title:'Giúp bạn mới',question:'Một bạn mới đứng một mình ở sân trường. Em sẽ làm gì?',answers:['Rủ bạn cùng chơi','Giả vờ không thấy','Trêu bạn'],correct:0,moral:'Hãy thân thiện và giúp bạn hòa nhập nhé!'},
+ {emoji:'🗑️',title:'Sân trường sạch đẹp',question:'Em nhìn thấy vỏ bánh trên sân. Em nên làm gì?',answers:['Đá sang chỗ khác','Nhặt bỏ vào thùng rác','Để nguyên'],correct:1,moral:'Giữ gìn trường lớp sạch đẹp là trách nhiệm của mọi người.'},
+ {emoji:'🙏',title:'Lời chào lễ phép',question:'Khi gặp thầy cô vào buổi sáng, em sẽ...',answers:['Chạy ngang qua','Nói chuyện thật to','Khoanh tay chào thầy cô'],correct:2,moral:'Một lời chào thể hiện sự kính trọng.'},
+ {emoji:'💛',title:'Trung thực là điều tốt',question:'Em nhặt được hộp bút của bạn. Em sẽ...',answers:['Trả lại cho bạn hoặc thầy cô','Giữ làm của riêng','Giấu đi'],correct:0,moral:'Trung thực giúp mọi người tin tưởng em.'},
+ {emoji:'🌱',title:'Yêu cây xanh',question:'Một bạn đang bẻ cành cây. Em sẽ...',answers:['Bẻ cùng bạn','Nhẹ nhàng nhắc bạn dừng lại','Bỏ đi'],correct:1,moral:'Cây xanh cần được chăm sóc và bảo vệ.'},
+ {emoji:'📚',title:'Giữ gìn sách vở',question:'Đọc sách thư viện xong, em nên...',answers:['Vứt trên ghế','Vẽ thêm lên sách','Đặt sách về đúng chỗ'],correct:2,moral:'Giữ gìn sách để nhiều bạn cùng đọc.'},
+ {emoji:'🧡',title:'Biết nói lời xin lỗi',question:'Vô tình va vào bạn, em nên...',answers:['Nói lời xin lỗi và hỏi thăm','Đổ lỗi cho bạn','Bỏ chạy'],correct:0,moral:'Dũng cảm nhận lỗi là một đức tính tốt.'},
+ {emoji:'🧠',title:'An toàn trong sân trường',question:'Khi cầu thang đông học sinh, em sẽ...',answers:['Chen lên trước','Đi chậm, xếp hàng và bám tay vịn','Nhảy qua nhiều bậc'],correct:1,moral:'Đi lại cẩn thận để giữ an toàn cho mình và mọi người.'}
+];
+const surpriseStyle=document.createElement('style');
+surpriseStyle.textContent=`
+#surpriseNotice[hidden]{display:none}#surpriseNotice{position:fixed;top:calc(env(safe-area-inset-top,0px) + 85px);left:50%;transform:translateX(-50%);z-index:10050;width:min(360px,calc(100vw - 30px));box-sizing:border-box;background:linear-gradient(135deg,#ffefaa,#fff);border:3px solid #ffb845;border-radius:20px;padding:13px 16px;color:#173d5e;box-shadow:0 9px 25px #0005;text-align:center;animation:surprisePulse 1.4s ease-in-out infinite alternate}
+#surpriseNotice strong{display:block;font-size:19px}#surpriseNotice span{display:block;font-size:13px;margin:5px 0}#surpriseNotice button{background:#ffbd55;border:0;border-radius:12px;padding:10px 16px;color:#173d5e;font-weight:900;cursor:pointer}
+@keyframes surprisePulse{from{box-shadow:0 6px 16px #0003}to{box-shadow:0 8px 25px #ffc34baa}}
+`;
+document.head.append(surpriseStyle);
+const surpriseNotice=document.createElement('div');surpriseNotice.id='surpriseNotice';surpriseNotice.hidden=true;
+surpriseNotice.innerHTML='<strong>🎉 NHIỆM VỤ BẤT NGỜ!</strong><span>⭐ Hoàn thành để nhận XP hoặc quà tặng!</span><button type="button">🎁 Nhấn để nhận nhiệm vụ</button>';
+document.body.append(surpriseNotice);
+let surpriseActive=-1,surpriseTravel=0,surpriseLastX=player.position.x,surpriseLastZ=player.position.z;
+function surpriseRandom(max){const n=new Uint32Array(1);if(window.crypto?.getRandomValues)window.crypto.getRandomValues(n);else n[0]=Math.floor(Math.random()*4294967296);return n[0]%max}
+function surpriseOffer(){
+ if(surpriseActive>=0||!welcome.hidden||floor!==-1||document.hidden)return;
+ const pool=surpriseQuests.map((_,i)=>i).filter(i=>!surpriseState.done.includes(i));
+ if(!pool.length)return;
+ surpriseActive=pool[surpriseRandom(pool.length)];
+ surpriseNotice.hidden=false;
+}
+function surpriseStart(){
+ if(surpriseActive<0)return;
+ const index=surpriseActive,quest=surpriseQuests[index];surpriseNotice.hidden=true;
+ function ask(){
+  dialog(quest.emoji+' '+quest.title,quest.question,quest.answers.map((answer,i)=>[answer,()=>{
+   if(i!==quest.correct){dialog('💡 Thử lại nhé!','Em hãy suy nghĩ thêm và chọn hành động tốt.',[['Thử lại',ask]]);return}
+   if(!surpriseState.done.includes(index)){
+    surpriseState.done.push(index);
+    const isGift=surpriseRandom(100)<35;
+    if(isGift){
+     const gift=wheelPrizes[surpriseRandom(wheelPrizes.length)];
+     wheelState.inventory.push({...gift,earnedAt:Date.now()});saveWheel();
+     dialog('🎉 Quà bất ngờ!',quest.moral+' Em nhận được '+gift.emoji+' '+gift.name+'!');
+    }else{
+     const amount=10+surpriseRandom(3)*5;surpriseState.xp+=amount;
+     dialog('🏆 Em làm tốt lắm!',quest.moral+' Em nhận được +'+amount+' XP!');
+    }
+    localStorage.setItem(surpriseKey,JSON.stringify(surpriseState));update();
+   }
+   surpriseActive=-1;
+  }]));
+ }
+ ask();
+}
+surpriseNotice.querySelector('button').onclick=surpriseStart;
+function updateSurpriseQuests(){
+ const x=player.position.x,z=player.position.z,dist=Math.hypot(x-surpriseLastX,z-surpriseLastZ);
+ surpriseLastX=x;surpriseLastZ=z;
+ if(!welcome.hidden||floor!==-1||document.hidden)return;
+ if(dist>.01&&dist<2)surpriseTravel+=dist;
+ // Random gameplay-distance opportunities; no predictable timed schedule.
+ if(surpriseTravel>=6){surpriseTravel=0;if(surpriseRandom(100)<22)surpriseOffer()}
+}
+
+const clock=new THREE.Clock();let lastRenderError='';function frame(){requestAnimationFrame(frame);try{const dt=Math.min(clock.getDelta(),.05);updateSchoolNature(clock.elapsedTime);updateAmbientPupils(clock.elapsedTime,dt);updateNpcMissionProximity();updateSurpriseQuests();bumNetFrame(dt);if(voiceMoving&&performance.now()<voiceMoveUntil){joy.x=voiceMoving==='left'?-1:voiceMoving==='right'?1:0;joy.y=voiceMoving==='forward'?-1:voiceMoving==='back'?1:0}else if(voiceMoving)voiceStopMovement();
  const manualX=(schoolGateUnlocked&&welcome.hidden?joy.x:0)+(keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0),manualZ=(schoolGateUnlocked&&welcome.hidden?joy.y:0)+(keys.has('s')||keys.has('arrowdown')?1:0)-(keys.has('w')||keys.has('arrowup')?1:0);tickBasketPower(dt);moveSaoDo(dt);if(floor===-1){for(const target of npcTargets){const sparks=target.group.userData.shopSparkles;if(!sparks)continue;for(const spark of sparks){spark.mesh.rotation.y+=dt*2;spark.mesh.rotation.z+=dt;spark.mesh.position.y=spark.baseY+Math.sin(clock.elapsedTime*3+spark.phase)*.12;spark.mesh.material.opacity=.35+.65*(.5+.5*Math.sin(clock.elapsedTime*4+spark.phase));spark.mesh.scale.setScalar(.75+.45*Math.sin(clock.elapsedTime*3+spark.phase))}}}if(Math.hypot(manualX,manualZ)>.18){autoTarget=null;standFromBench()};
 // Manual movement is camera-relative: W/up always moves into the scene from the current viewpoint.
 const cameraRightX=Math.cos(orbitYaw),cameraRightZ=-Math.sin(orbitYaw);
