@@ -1341,12 +1341,22 @@ function actionOwnedChoices(type){
  const {items}=actionStock();const list=Object.entries(items).filter(([name,n])=>n>0&&(type==='food'?/bánh|sữa|nước|trà|sinh tố|cam|flan|cake|juice/i.test(name):/hoa|quà|gấu|thiệp|bút|vở|thước|cặp/i.test(name)));
  return list;
 }
+function showTeacherRoleplayCaption(speech){
+ let el=document.getElementById('teacherRoleplayCaption');
+ if(!el){el=document.createElement('div');el.id='teacherRoleplayCaption';document.body.append(el)}
+ el.textContent='👨‍🏫 Thầy Huy: “'+speech+'”';
+ el.style.cssText='position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 205px);transform:translateX(-50%);width:max-content;max-width:min(650px,82vw);padding:13px 17px;border-radius:16px;border:2px solid #ffd46b;background:rgba(16,48,79,.96);color:#fff;font:800 clamp(13px,2.5vw,19px)/1.5 system-ui;text-align:center;z-index:10060;pointer-events:none;box-shadow:0 8px 24px #0007';
+}
 function startStudentAction(id,extra={}){
  if(!studentActions[id]||!schoolGateUnlocked||!welcome.hidden||saoChase||saoEncounterOpen||seatedBench||document.getElementById('modal').style.display==='flex')return;
  autoTarget=null;studentActionProp.visible=id==='sing';studentAction={id,started:performance.now(),dirX:Math.sin(player.rotation.y),dirZ:Math.cos(player.rotation.y),runStopped:false,...extra};
  const menu=document.getElementById('studentActionMenu');if(menu){menu.hidden=true;menu.style.display='none'};
  document.getElementById('tip').textContent=studentActions[id].label;
- if(id==='teacher')speakGameVietnamese('Ta là thầy Huy đây! Các em không được quậy phá! Sao đỏ! Em ghi tên học sinh này lại cho tôi!',{purpose:'roleplay'});
+ if(id==='teacher'){
+  const speech='Ta là thầy Huy đây! Các em không được quậy phá! Sao đỏ! Em ghi tên học sinh này lại cho tôi!';
+  showTeacherRoleplayCaption(speech);
+  speakGameVietnamese(speech,{purpose:'roleplay'});
+ }
 }
 function chooseStudentAction(id){
  if(id==='eat'||id==='drink'||id==='gift'){
@@ -1396,7 +1406,7 @@ const norm=Math.max(1,Math.hypot(dx,dz)),vx=dx/norm*speed*dt,vz=dz/norm*speed*dt
 if(studentAction){
  const t=(performance.now()-studentAction.started)/1000;
  if(t>=studentActions[studentAction.id].duration){
-  studentAction=null;studentActionProp.visible=false;avatar.rotation.y=0;avatar.rotation.z=0;avatar.position.y=0;
+  if(studentAction.id==='teacher'){const caption=document.getElementById('teacherRoleplayCaption');if(caption)caption.remove()}studentAction=null;studentActionProp.visible=false;avatar.rotation.y=0;avatar.rotation.z=0;avatar.position.y=0;
   arms[0].rotation.x=0;arms[1].rotation.x=0;arms[0].rotation.z=0;arms[1].rotation.z=0;
   legs[0].rotation.x=0;legs[1].rotation.x=0;
  }else if(studentAction.id==='hiphop'){
