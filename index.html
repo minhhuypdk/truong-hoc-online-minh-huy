@@ -101,7 +101,7 @@
 window.addEventListener('error',function(e){var el=document.getElementById('runtimeError');if(el){el.hidden=false;el.textContent='⚠️ Lỗi tải cảnh 3D: '+(e.message||'Không xác định')+' (dòng '+(e.lineno||'?')+')';}});
 window.addEventListener('unhandledrejection',function(e){var el=document.getElementById('runtimeError');if(el){el.hidden=false;el.textContent='⚠️ Lỗi tải 3D: '+String(e.reason&&e.reason.message||e.reason).slice(0,180);}});
 </script><div id="runtimeError" hidden style="position:fixed;left:12px;right:12px;top:28%;z-index:99999;background:#fff0e8;border:2px solid #dc6755;color:#692b20;border-radius:12px;padding:14px;font:700 15px system-ui;box-shadow:0 4px 16px #0003"></div>
-<div id="sceneDebug" style="position:fixed;left:12px;bottom:92px;z-index:20;background:#142c40dd;color:#fff;padding:6px 9px;border-radius:8px;font:11px system-ui;pointer-events:none">3D: đang tải...</div><script type="module">
+<script type="module">
 import * as THREE from 'https://esm.sh/three@0.170.0';
 /* Original cheerful instrumental background music, synthesized locally with Web Audio. */
 const musicButton=document.getElementById('musicToggle');let audioCtx=null,musicTimer=null,musicStep=0,musicEnabled=true;
